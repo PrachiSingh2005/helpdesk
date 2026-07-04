@@ -1,0 +1,87 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  AGENT
+}
+
+enum TicketStatus {
+  OPEN
+  RESOLVED
+  CLOSED
+}
+
+enum TicketCategory {
+  GENERAL_QUESTION
+  TECHNICAL_QUESTION
+  REFUND_REQUEST
+}
+
+enum MessageSender {
+  STUDENT
+  SYSTEM_AI
+  AGENT
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  passwordHash String
+  role         Role        @default(AGENT)
+  sessions     Session[]
+  kbArticles   KBArticle[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  sid       String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Ticket {
+  id               String         @id @default(uuid())
+  ticketNumber     Int            @unique @default(autoincrement())
+  studentEmail     String
+  subject          String
+  status           TicketStatus   @default(OPEN)
+  category         TicketCategory @default(GENERAL_QUESTION)
+  aiSummary        String?        @db.Text
+  aiSuggestedReply String?        @db.Text
+  aiConfidence     Float?
+  messages         Message[]
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model Message {
+  id          String        @id @default(uuid())
+  ticketId    String
+  ticket      Ticket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender      MessageSender
+  senderEmail String
+  body        String        @db.Text
+  messageId   String?       @unique // For storing email Message-ID header to manage threading
+  createdAt   DateTime      @default(now())
+}
+
+model KBArticle {
+  id        String   @id @default(uuid())
+  title     String
+  content   String   @db.Text
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
