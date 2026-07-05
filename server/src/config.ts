@@ -10,4 +10,6 @@ export const config = {
   AUTO_REPLY_CONFIDENCE_THRESHOLD: parseFloat(process.env.AUTO_REPLY_CONFIDENCE_THRESHOLD || '0.85'),
   SENDGRID_API_KEY: process.env.SENDGRID_API_KEY || '',
   EMAIL_FROM: process.env.EMAIL_FROM || 'support@helpdesk.edu',
+  ADMIN_EMAIL: process.env.ADMIN_EMAIL || 'admin@example.com',
+  ADMIN_PASSWORD: process.env.ADMIN_PASSWORD || 'password123',
 };

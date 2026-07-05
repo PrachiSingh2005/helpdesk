@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
-import type { Ticket, Message } from '../utils/api';
-import { Loader2, ArrowLeft, Send, Sparkles, AlertCircle, CheckCircle, Shield } from 'lucide-react';
+import type { Ticket } from '../utils/api';
+import { Loader2, ArrowLeft, Send, Sparkles } from 'lucide-react';
 
 export const TicketDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import type { Ticket } from '../utils/api';
-import { Search, SlidersHorizontal, ArrowUpDown, RefreshCw, Calendar, Eye, Sparkles } from 'lucide-react';
+import { Search, SlidersHorizontal, ArrowUpDown, RefreshCw, Calendar, Eye, Sparkles, Ticket as TicketIcon } from 'lucide-react';
 
 export const TicketsList: React.FC = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -173,7 +173,7 @@ export const TicketsList: React.FC = () => {
         </div>
       ) : tickets.length === 0 ? (
         <div className="glass-panel py-20 text-center rounded-2xl border border-slate-800/80">
-          <Ticket className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+          <TicketIcon className="w-12 h-12 text-slate-600 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-white mb-2">No tickets found</h3>
           <p className="text-slate-400 text-sm max-w-md mx-auto leading-relaxed">
             Try adjusting your search keywords, status filters, or topics to fetch matched items.

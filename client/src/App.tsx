@@ -9,11 +9,12 @@ import { TicketDetail } from './pages/TicketDetail';
 import { KBManager } from './pages/KBManager';
 import { AgentManager } from './pages/AgentManager';
 import { Loader2 } from 'lucide-react';
+import { Role } from './utils/api';
 
 /**
  * Route authorization protector. Evaluates login status and role privileges.
  */
-const ProtectedRoute: React.FC<{ allowedRoles?: Array<'ADMIN' | 'AGENT'> }> = ({
+const ProtectedRoute: React.FC<{ allowedRoles?: Array<Role> }> = ({
   allowedRoles,
 }) => {
   const { user, loading } = useAuth();
@@ -51,14 +52,14 @@ export default function App() {
           <Route path="/login" element={<Login />} />
 
           {/* Secure authenticated dashboard routes */}
-          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['ADMIN', 'AGENT']} />}>
+          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={[Role.ADMIN, Role.AGENT]} />}>
             <Route element={<DashboardLayout />}>
               <Route index element={<DashboardHome />} />
               <Route path="tickets" element={<TicketsList />} />
               <Route path="tickets/:id" element={<TicketDetail />} />
               <Route path="kb" element={<KBManager />} />
               {/* Admin only subroute */}
-              <Route path="agents" element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+              <Route path="agents" element={<ProtectedRoute allowedRoles={[Role.ADMIN]} />}>
                 <Route index element={<AgentManager />} />
               </Route>
             </Route>

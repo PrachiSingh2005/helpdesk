@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LayoutDashboard, Ticket, BookOpen, Users, LogOut, ShieldAlert } from 'lucide-react';
+import { Role } from '../utils/api';
 
 export const DashboardLayout: React.FC = () => {
   const { user, logout } = useAuth();
@@ -24,7 +25,7 @@ export const DashboardLayout: React.FC = () => {
   ];
 
   // Restrict agent view access to ADMIN-only pages
-  if (user?.role === 'ADMIN') {
+  if (user?.role === Role.ADMIN) {
     navItems.push({ label: 'Manage Agents', path: '/dashboard/agents', icon: Users });
   }
 

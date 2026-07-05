@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../utils/api';
+import { api, Role } from '../utils/api';
 import type { User } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { Users, Plus, Trash2, Mail, ShieldAlert, KeyRound, Loader2 } from 'lucide-react';
+import { Users, Plus, Trash2, Mail, KeyRound, Loader2 } from 'lucide-react';
 
 export const AgentManager: React.FC = () => {
   const { user: currentUser } = useAuth();
@@ -13,7 +13,7 @@ export const AgentManager: React.FC = () => {
   // Form Editor State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('AGENT');
+  const [role, setRole] = useState<Role>(Role.AGENT);
   const [isCreating, setIsCreating] = useState(false);
 
   const fetchAgents = async () => {
@@ -41,7 +41,7 @@ export const AgentManager: React.FC = () => {
       setAgents((prev) => [data.agent, ...prev]);
       setEmail('');
       setPassword('');
-      setRole('AGENT');
+      setRole(Role.AGENT);
       alert('Agent account created successfully.');
     } catch (err: any) {
       alert(err.message || 'Failed to create agent account.');
@@ -123,11 +123,11 @@ export const AgentManager: React.FC = () => {
             <label className="block text-slate-400 text-xs font-semibold mb-2">Access Role</label>
             <select
               value={role}
-              onChange={(e) => setRole(e.target.value)}
+              onChange={(e) => setRole(e.target.value as Role)}
               className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-300 focus:outline-none cursor-pointer"
             >
-              <option value="AGENT">Support Agent</option>
-              <option value="ADMIN">System Administrator</option>
+              <option value={Role.AGENT}>Support Agent</option>
+              <option value={Role.ADMIN}>System Administrator</option>
             </select>
           </div>
 
@@ -166,9 +166,9 @@ export const AgentManager: React.FC = () => {
               <div>
                 <span className="text-sm font-bold text-slate-200 block">{agent.email}</span>
                 <span className={`text-[10px] uppercase tracking-wider font-extrabold mt-1 inline-block ${
-                  agent.role === 'ADMIN' ? 'text-violet-400 animate-pulse' : 'text-slate-400'
+                  agent.role === Role.ADMIN ? 'text-violet-400 animate-pulse' : 'text-slate-400'
                 }`}>
-                  {agent.role === 'ADMIN' ? 'Administrator' : 'Agent'}
+                  {agent.role === Role.ADMIN ? 'Administrator' : 'Agent'}
                 </span>
               </div>
               

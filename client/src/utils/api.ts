@@ -1,7 +1,14 @@
+export const Role = {
+  ADMIN: 'ADMIN',
+  AGENT: 'AGENT',
+} as const;
+
+export type Role = typeof Role[keyof typeof Role];
+
 export interface User {
   id: string;
   email: string;
-  role: 'ADMIN' | 'AGENT';
+  role: Role;
   createdAt?: string;
 }
 

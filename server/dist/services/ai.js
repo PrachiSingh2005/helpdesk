@@ -1,0 +1,168 @@
+import Anthropic from '@anthropic-ai/sdk';
+import { config } from '../config';
+import { prisma } from '../db';
+import { TicketCategory } from '@prisma/client';
+let anthropicClient = null;
+if (config.ANTHROPIC_API_KEY && config.ANTHROPIC_API_KEY !== 'your-anthropic-api-key-here') {
+    anthropicClient = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY });
+}
+else {
+    console.warn('WARNING: ANTHROPIC_API_KEY is not configured. AI operations will use mock/fallback responses.');
+}
+/**
+ * Classifies a ticket and generates a brief summary using Claude.
+ */
+export async function classifyAndSummarizeTicket(subject, body) {
+    if (!anthropicClient) {
+        // Fallback Mock classifier based on common university keywords
+        let category = TicketCategory.GENERAL_QUESTION;
+        const lowerBody = (body + ' ' + subject).toLowerCase();
+        if (lowerBody.includes('refund') || lowerBody.includes('money') || lowerBody.includes('billing')) {
+            category = TicketCategory.REFUND_REQUEST;
+        }
+        else if (lowerBody.includes('wifi') || lowerBody.includes('password') || lowerBody.includes('portal') || lowerBody.includes('error')) {
+            category = TicketCategory.TECHNICAL_QUESTION;
+        }
+        return {
+            category,
+            summary: `Student is inquiring about "${subject.substring(0, 30)}..."`,
+        };
+    }
+    try {
+        const prompt = `You are a helpful university support desk coordinator. 
+Analyze the following student ticket:
+Subject: "${subject}"
+Body: "${body}"
+
+Classify this ticket into one of the following exact categories:
+- "GENERAL_QUESTION" (e.g. general inquiries, policy info)
+- "TECHNICAL_QUESTION" (e.g. portal login, Wi-Fi issues, systems errors)
+- "REFUND_REQUEST" (e.g. tuition refunds, billing disputes)
+
+Also, write a 1-to-2 sentence summary of the student's request.
+
+Output your response strictly as a JSON object, with no formatting or other text:
+{
+  "category": "GENERAL_QUESTION | TECHNICAL_QUESTION | REFUND_REQUEST",
+  "summary": "Your brief summary here"
+}`;
+        const response = await anthropicClient.messages.create({
+            model: 'claude-3-haiku-20240307',
+            max_tokens: 300,
+            temperature: 0,
+            system: 'You return only raw JSON as instructed. Do not include markdown blocks or any other characters.',
+            messages: [{ role: 'user', content: prompt }],
+        });
+        const contentText = response.content[0].type === 'text' ? response.content[0].text : '';
+        const cleanJson = contentText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const result = JSON.parse(cleanJson);
+        return {
+            category: Object.values(TicketCategory).includes(result.category)
+                ? result.category
+                : TicketCategory.GENERAL_QUESTION,
+            summary: result.summary || 'Summary generation failed.',
+        };
+    }
+    catch (error) {
+        console.error('Claude classification API error:', error);
+        return {
+            category: TicketCategory.GENERAL_QUESTION,
+            summary: 'Failed to generate summary due to system error.',
+        };
+    }
+}
+/**
+ * Searches the Knowledge Base for the most relevant articles using keywords.
+ */
+async function searchKB(query) {
+    const articles = await prisma.kBArticle.findMany();
+    const searchTerms = query.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
+    const matches = articles.map((art) => {
+        let score = 0;
+        const contentLower = (art.title + ' ' + art.content).toLowerCase();
+        for (const term of searchTerms) {
+            if (contentLower.includes(term)) {
+                score++;
+            }
+        }
+        return { article: art, score };
+    });
+    return matches
+        .filter((m) => m.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .map((m) => ({ title: m.article.title, content: m.article.content }));
+}
+/**
+ * Generates an AI suggested reply using relevant knowledge base articles.
+ */
+export async function generateSuggestedReply(subject, messages) {
+    const latestMessage = messages[messages.length - 1]?.body || '';
+    // Retrieve relevant knowledge base articles
+    const searchContext = `${subject} ${latestMessage}`;
+    let kbContext = await searchKB(searchContext);
+    // If no specific articles matched, pass the top 3 articles
+    if (kbContext.length === 0) {
+        const allKb = await prisma.kBArticle.findMany({ take: 3 });
+        kbContext = allKb.map((a) => ({ title: a.title, content: a.content }));
+    }
+    const articlesText = kbContext
+        .map((art, idx) => `[Article #${idx + 1}] Title: ${art.title}\nContent:\n${art.content}`)
+        .join('\n\n');
+    if (!anthropicClient) {
+        // Fallback Mock replies based on common queries
+        let reply = `Thank you for reaching out. We have received your request. An agent will review it shortly.`;
+        let confidence = 0.5;
+        const lowerMsg = latestMessage.toLowerCase();
+        if (lowerMsg.includes('wifi') || lowerMsg.includes('wi-fi')) {
+            reply = `Thank you for contacting HelpDesk.\n\nTo connect to the campus secure Wi-Fi (**EduWifi**):\n1. Select **EduWifi** from your device settings.\n2. Log in using your student email and portal password.\n3. Accept/Trust the certificate if prompted.\n\nIf you have further technical issues, feel free to reply directly to this thread!`;
+            confidence = 0.95;
+        }
+        else if (lowerMsg.includes('refund')) {
+            reply = `Thank you for contacting HelpDesk.\n\nAccording to our policy, refund eligibility depends on when you submit your request:\n- **Full Refund**: Requests submitted within the first 14 calendar days of the semester.\n- **Partial Refund (50%)**: Between day 15 and day 30.\n- **No Refund**: After the 30th calendar day.\n\nPlease confirm your semester start date so we can process your request accordingly.`;
+            confidence = 0.95;
+        }
+        return { suggestedReply: reply, confidence };
+    }
+    try {
+        const systemPrompt = `You are a helpful university support desk agent. Your job is to draft responses to students based ONLY on the provided Knowledge Base articles.
+    
+Rules:
+1. Be polite, warm, and helpful.
+2. Rely ONLY on facts directly stated in the provided Knowledge Base articles. If the articles do not contain information to answer the question, state that you do not have that information and set the confidence field to a value below 0.5.
+3. Include a confidence field (0.0 to 1.0) indicating how confident you are that the provided knowledge base articles fully answer the query.
+
+Provide your output strictly in JSON format:
+{
+  "suggestedReply": "Your drafted response to the student here",
+  "confidence": 0.95
+}`;
+        const prompt = `Here are the relevant Knowledge Base articles:
+${articlesText}
+
+Student Message History:
+${messages.map((m) => `${m.sender}: "${m.body}"`).join('\n')}
+
+Draft a response to the latest message based ONLY on the knowledge base articles. Do not invent any facts not found in the articles. Output raw JSON containing "suggestedReply" and "confidence".`;
+        const response = await anthropicClient.messages.create({
+            model: 'claude-3-haiku-20240307',
+            max_tokens: 600,
+            temperature: 0.2,
+            system: systemPrompt,
+            messages: [{ role: 'user', content: prompt }],
+        });
+        const contentText = response.content[0].type === 'text' ? response.content[0].text : '';
+        const cleanJson = contentText.replace(/```json/g, '').replace(/```/g, '').trim();
+        const result = JSON.parse(cleanJson);
+        return {
+            suggestedReply: result.suggestedReply || '',
+            confidence: typeof result.confidence === 'number' ? result.confidence : 0.5,
+        };
+    }
+    catch (error) {
+        console.error('Claude suggested reply API error:', error);
+        return {
+            suggestedReply: 'Failed to generate suggested reply due to system error.',
+            confidence: 0.0,
+        };
+    }
+}

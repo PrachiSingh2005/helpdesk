@@ -30,6 +30,6 @@
     "prisma": "^5.14.0"
   },
   "prisma": {
-    "seed": "C:\\Users\\saksh\\.bun\\bin\\bun.exe prisma/seed.ts"
+    "seed": "bun prisma/seed.ts"
   }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import type { KBArticle } from '../utils/api';
-import { BookOpen, Plus, Save, Trash2, Edit3, Eye, Loader2, Sparkles } from 'lucide-react';
+import { BookOpen, Plus, Save, Trash2, Edit3, Eye, Loader2 } from 'lucide-react';
 
 export const KBManager: React.FC = () => {
   const [articles, setArticles] = useState<KBArticle[]>([]);
@@ -114,6 +114,11 @@ export const KBManager: React.FC = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-200 text-xs rounded-xl">
+              {error}
+            </div>
+          )}
           {articles.map((art) => (
             <button
               key={art.id}
