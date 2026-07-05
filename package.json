@@ -1,0 +1,8 @@
+{
+  "name": "helpdesk-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:e2e": "bun --cwd=client run test:e2e"
+  }
+}

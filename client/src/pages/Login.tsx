@@ -76,7 +76,7 @@ export const Login: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-slate-300 text-xs font-semibold uppercase tracking-wider">
                 Email Address
