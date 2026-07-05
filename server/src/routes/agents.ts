@@ -2,6 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../db';
 import { requireRole } from '../middleware/auth';
+import { asyncHandler } from '../utils/asyncHandler';
 
 const router = Router();
 
@@ -9,62 +10,52 @@ const router = Router();
 router.use(requireRole('ADMIN'));
 
 // Get all registered agents
-router.get('/', async (req, res) => {
-  try {
-    const agents = await prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
-    return res.json({ agents });
-  } catch (error) {
-    console.error('Get agents error:', error);
-    return res.status(500).json({ error: 'Internal server error.' });
-  }
-});
+router.get('/', asyncHandler(async (req, res) => {
+  const agents = await prisma.user.findMany({
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      createdAt: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+  return res.json({ agents });
+}));
 
 // Create a new agent account
-router.post('/', async (req, res) => {
+router.post('/', asyncHandler(async (req, res) => {
   const { email, password, role } = req.body;
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required.' });
   }
 
-  try {
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ error: 'Email is already in use.' });
-    }
-
-    const passwordHash = await bcrypt.hash(password, 10);
-    const newAgent = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        role: role === 'ADMIN' ? 'ADMIN' : 'AGENT',
-      },
-      select: {
-        id: true,
-        email: true,
-        role: true,
-        createdAt: true,
-      },
-    });
-
-    return res.status(201).json({ agent: newAgent });
-  } catch (error) {
-    console.error('Create agent error:', error);
-    return res.status(500).json({ error: 'Internal server error.' });
+  const existingUser = await prisma.user.findUnique({ where: { email } });
+  if (existingUser) {
+    return res.status(400).json({ error: 'Email is already in use.' });
   }
-});
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const newAgent = await prisma.user.create({
+    data: {
+      email,
+      passwordHash,
+      role: role === 'ADMIN' ? 'ADMIN' : 'AGENT',
+    },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      createdAt: true,
+    },
+  });
+
+  return res.status(201).json({ agent: newAgent });
+}));
 
 // Delete an agent account
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   if (id === req.user?.id) {
@@ -72,17 +63,14 @@ router.delete('/:id', async (req, res) => {
   }
 
   try {
-    const agent = await prisma.user.findUnique({ where: { id } });
-    if (!agent) {
-      return res.status(404).json({ error: 'Agent not found.' });
-    }
-
     await prisma.user.delete({ where: { id } });
     return res.json({ message: 'Agent deleted successfully.' });
-  } catch (error) {
-    console.error('Delete agent error:', error);
-    return res.status(500).json({ error: 'Internal server error.' });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Agent not found.' });
+    }
+    throw error;
   }
-});
+}));
 
 export default router;

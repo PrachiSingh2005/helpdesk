@@ -28,6 +28,9 @@ app.use('/api/tickets', ticketRoutes);
 app.use('/api/kb', kbRoutes);
 app.use('/api/emails', emailRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+// Global Error Handler Middleware
+import { errorHandler } from './middleware/error';
+app.use(errorHandler);
 // Server Status / Health Check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date() });
