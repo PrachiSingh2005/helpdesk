@@ -69,6 +69,7 @@ We have seeded the database with the following default credentials:
 | :--- | :--- | :--- | :--- |
 | **System Administrator** | `admin@example.com` | `password123` | Configured via `ADMIN_EMAIL` & `ADMIN_PASSWORD` in `.env` |
 | **Support Agent** | `agent@helpdesk.edu` | `agent123` | Hardcoded seeder fallback |
+| **Support Agent** | `agent@example.com` | `password123` | Manually created agent test account |
 
 ---
 
@@ -100,6 +101,11 @@ We have seeded the database with the following default credentials:
 *   **Role Protection**: Access to pages is guarded via the `<ProtectedRoute>` component which checks the user context against a typesafe `Role` enum defined in `client/src/utils/api.ts`:
     *   `Role.ADMIN`
     *   `Role.AGENT`
+
+### 4. Admin-Only Features & Navigation Page
+*   **Users Page (`/users`)**: An admin-only page containing user administration. Guarded client-side via `allowedRoles={[Role.ADMIN]}` on `<ProtectedRoute>`.
+*   **Sidebar Navigation**: Added a tab labeled **"Users"** using the `UserCog` icon inside [DashboardLayout.tsx](file:///d:/HelpDesk/client/src/components/DashboardLayout.tsx) to redirect to `/users`. It is only visible when the logged-in user is an administrator.
+*   **Quick Actions Panel**: Added an **"Administrator Quick Actions"** control panel in the main area of [DashboardHome.tsx](file:///d:/HelpDesk/client/src/pages/DashboardHome.tsx) when logged in as an administrator. It provides quick configuration paths to `/dashboard/agents` and `/users`.
 
 ---
 

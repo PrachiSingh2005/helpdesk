@@ -8,6 +8,7 @@ import { TicketsList } from './pages/TicketsList';
 import { TicketDetail } from './pages/TicketDetail';
 import { KBManager } from './pages/KBManager';
 import { AgentManager } from './pages/AgentManager';
+import { Users } from './pages/Users';
 import { Loader2 } from 'lucide-react';
 import { Role } from './utils/api';
 
@@ -65,6 +66,13 @@ export default function App() {
             </Route>
           </Route>
 
+          {/* Admin only page at /users */}
+          <Route path="/users" element={<ProtectedRoute allowedRoles={[Role.ADMIN]} />}>
+            <Route element={<DashboardLayout />}>
+              <Route index element={<Users />} />
+            </Route>
+          </Route>
+
           {/* Root redirect */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
@@ -72,3 +80,4 @@ export default function App() {
     </AuthProvider>
   );
 }
+

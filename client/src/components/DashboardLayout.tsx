@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Ticket, BookOpen, Users, LogOut, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, Ticket, BookOpen, Users, LogOut, ShieldAlert, UserCog } from 'lucide-react';
 import { Role } from '../utils/api';
 
 export const DashboardLayout: React.FC = () => {
@@ -27,6 +27,7 @@ export const DashboardLayout: React.FC = () => {
   // Restrict agent view access to ADMIN-only pages
   if (user?.role === Role.ADMIN) {
     navItems.push({ label: 'Manage Agents', path: '/dashboard/agents', icon: Users });
+    navItems.push({ label: 'Users', path: '/users', icon: UserCog });
   }
 
   return (
@@ -92,6 +93,8 @@ export const DashboardLayout: React.FC = () => {
               ? 'Knowledge Base Editor'
               : location.pathname.startsWith('/dashboard/agents')
               ? 'Agent Operations'
+              : location.pathname.startsWith('/users')
+              ? 'User Administration'
               : 'Support Dashboard'}
           </h1>
           <div className="flex items-center gap-4">

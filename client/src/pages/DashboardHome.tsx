@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../utils/api';
+import { api, Role } from '../utils/api';
 import type { DashboardStats } from '../utils/api';
-import { Ticket, ShieldAlert, BadgeCheck, CircleAlert, Sparkles, UserCheck, Loader2 } from 'lucide-react';
+import { Ticket, ShieldAlert, BadgeCheck, CircleAlert, Sparkles, UserCheck, Loader2, UserCog, Users as UsersIcon } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 export const DashboardHome: React.FC = () => {
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -215,6 +219,54 @@ export const DashboardHome: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {user?.role === Role.ADMIN && (
+        <div className="bg-slate-900/40 border border-slate-800/80 backdrop-blur-xl p-6 rounded-2xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-violet-600/10 border border-violet-500/20 rounded-xl">
+              <UserCog className="w-5 h-5 text-violet-400" />
+            </div>
+            <h3 className="text-lg font-bold text-white">Administrator Quick Actions</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Link
+              to="/dashboard/agents"
+              className="flex items-center justify-between p-4 bg-slate-950/40 hover:bg-slate-900/60 border border-slate-800/60 hover:border-violet-500/30 rounded-xl transition-all duration-200 group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-violet-600/10 border border-violet-500/20 rounded-lg group-hover:bg-violet-600/20">
+                  <UsersIcon className="w-5 h-5 text-violet-400" />
+                </div>
+                <div>
+                  <span className="text-slate-200 text-sm font-semibold block">Manage Agents</span>
+                  <span className="text-xs text-slate-400">Configure support agent accounts and permissions</span>
+                </div>
+              </div>
+              <span className="text-xs text-violet-400 font-semibold group-hover:translate-x-1 transition-transform">
+                Configure →
+              </span>
+            </Link>
+
+            <Link
+              to="/users"
+              className="flex items-center justify-between p-4 bg-slate-950/40 hover:bg-slate-900/60 border border-slate-800/60 hover:border-violet-500/30 rounded-xl transition-all duration-200 group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-violet-600/10 border border-violet-500/20 rounded-lg group-hover:bg-violet-600/20">
+                  <UserCog className="w-5 h-5 text-violet-400" />
+                </div>
+                <div>
+                  <span className="text-slate-200 text-sm font-semibold block">User Administration</span>
+                  <span className="text-xs text-slate-400">View and manage customer/end-user accounts</span>
+                </div>
+              </div>
+              <span className="text-xs text-violet-400 font-semibold group-hover:translate-x-1 transition-transform">
+                Configure →
+              </span>
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
