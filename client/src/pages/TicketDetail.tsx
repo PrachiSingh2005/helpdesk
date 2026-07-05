@@ -183,7 +183,7 @@ export const TicketDetail: React.FC = () => {
       {/* Right Column: Sidebar Metadata Panel */}
       <div className="w-full md:w-80 flex flex-col gap-6 h-full overflow-y-auto">
         {/* Status/Category panel */}
-        <div className="glass-panel p-6 rounded-2xl border border-slate-800/80 space-y-5">
+        <div className="bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-800/80 space-y-5">
           <h3 className="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-2">
             Ticket Attributes
           </h3>
@@ -220,7 +220,7 @@ export const TicketDetail: React.FC = () => {
         </div>
 
         {/* AI Summary Panel */}
-        <div className="glass-panel p-6 rounded-2xl border border-slate-800/80 bg-violet-950/5">
+        <div className="bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl border border-slate-800/80 bg-violet-950/5">
           <div className="flex items-center gap-2 border-b border-slate-800 pb-2 mb-3">
             <Sparkles className="w-4 h-4 text-violet-400" />
             <h3 className="text-sm font-bold text-white uppercase tracking-wider">
@@ -234,7 +234,7 @@ export const TicketDetail: React.FC = () => {
 
         {/* AI Suggested Response rating panel */}
         {ticket.aiSuggestedReply && (
-          <div className="glass-panel p-6 rounded-2xl border border-indigo-500/20 bg-indigo-950/5">
+          <div className="bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl border border-indigo-500/20 bg-indigo-950/5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />

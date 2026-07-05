@@ -76,7 +76,7 @@ export const AgentManager: React.FC = () => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-fadeIn">
       {/* Left Column: Create new agent form */}
-      <div className="lg:col-span-1 glass-panel p-6 rounded-2xl border border-slate-800/80 h-fit">
+      <div className="lg:col-span-1 bg-slate-900/40 border border-slate-800/80 backdrop-blur-xl p-6 rounded-2xl h-fit">
         <div className="flex items-center gap-2 border-b border-slate-800 pb-3 mb-6">
           <Plus className="w-5 h-5 text-violet-400" />
           <h3 className="text-sm font-bold text-white uppercase tracking-wider">
@@ -146,7 +146,7 @@ export const AgentManager: React.FC = () => {
       </div>
 
       {/* Right Column: Registered agents list */}
-      <div className="lg:col-span-2 glass-panel p-6 rounded-2xl border border-slate-800/80">
+      <div className="lg:col-span-2 bg-slate-900/40 border border-slate-800/80 backdrop-blur-xl p-6 rounded-2xl">
         <div className="flex items-center gap-2 border-b border-slate-800 pb-3 mb-6">
           <Users className="w-5 h-5 text-violet-400" />
           <h3 className="text-sm font-bold text-white uppercase tracking-wider">

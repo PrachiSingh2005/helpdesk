@@ -91,7 +91,7 @@ export const TicketsList: React.FC = () => {
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Search and Filters panel */}
-      <div className="glass-panel p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-slate-900/40 border border-slate-800/80 backdrop-blur-xl p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Search Form */}
         <form onSubmit={handleSearchSubmit} className="relative flex-1 max-w-md">
           <input
@@ -172,7 +172,7 @@ export const TicketsList: React.FC = () => {
           <RefreshCw className="w-8 h-8 text-violet-500 animate-spin" />
         </div>
       ) : tickets.length === 0 ? (
-        <div className="glass-panel py-20 text-center rounded-2xl border border-slate-800/80">
+        <div className="bg-slate-900/40 backdrop-blur-xl py-20 text-center rounded-2xl border border-slate-800/80">
           <TicketIcon className="w-12 h-12 text-slate-600 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-white mb-2">No tickets found</h3>
           <p className="text-slate-400 text-sm max-w-md mx-auto leading-relaxed">
@@ -180,7 +180,7 @@ export const TicketsList: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="glass-panel overflow-hidden rounded-2xl border border-slate-800/80 shadow-xl">
+        <div className="bg-slate-900/40 backdrop-blur-xl overflow-hidden rounded-2xl border border-slate-800/80 shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>

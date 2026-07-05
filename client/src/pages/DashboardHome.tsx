@@ -86,7 +86,7 @@ export const DashboardHome: React.FC = () => {
           return (
             <div
               key={idx}
-              className={`glass-panel p-6 rounded-2xl border ${card.border} ${card.bg} flex items-center justify-between transition-all duration-300 hover:scale-[1.02] hover:border-white/10`}
+              className={`bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl border ${card.border} ${card.bg} flex items-center justify-between transition-all duration-300 hover:scale-[1.02] hover:border-white/10`}
             >
               <div>
                 <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider block mb-1">
@@ -104,7 +104,7 @@ export const DashboardHome: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* AI Metrics Card */}
-        <div className="lg:col-span-2 glass-panel p-8 rounded-2xl flex flex-col justify-between">
+        <div className="lg:col-span-2 bg-slate-900/40 border border-slate-800/80 backdrop-blur-xl p-8 rounded-2xl flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -177,7 +177,7 @@ export const DashboardHome: React.FC = () => {
         </div>
 
         {/* Category Breakdown Card */}
-        <div className="glass-panel p-8 rounded-2xl flex flex-col justify-between">
+        <div className="bg-slate-900/40 border border-slate-800/80 backdrop-blur-xl p-8 rounded-2xl flex flex-col justify-between">
           <div>
             <h3 className="text-lg font-bold text-white mb-6">Topic Distribution</h3>
             <div className="space-y-4">
