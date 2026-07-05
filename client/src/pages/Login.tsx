@@ -2,32 +2,46 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { ShieldCheck, Mail, Lock, Loader2 } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const loginSchema = z.object({
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+type LoginSchemaType = z.infer<typeof loginSchema>;
 
 export const Login: React.FC = () => {
   const { user, login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginSchemaType>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
   // Redirect authenticated users to the dashboard
   if (user) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: LoginSchemaType) => {
     setError(null);
-    setIsSubmitting(true);
-
     try {
-      await login({ email, password });
+      await login(data);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed. Please verify credentials.');
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -55,7 +69,7 @@ export const Login: React.FC = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <label className="block text-slate-300 text-xs font-semibold uppercase tracking-wider mb-2">
               Email Address
@@ -66,13 +80,16 @@ export const Login: React.FC = () => {
               </span>
               <input
                 type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register('email')}
                 placeholder="agent@helpdesk.edu"
-                className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all duration-200"
+                className={`w-full pl-11 pr-4 py-3 bg-slate-900/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-all duration-200 ${
+                  errors.email ? 'border-red-500 focus:border-red-500' : 'border-slate-700/50 focus:border-violet-500'
+                }`}
               />
             </div>
+            {errors.email && (
+              <p className="mt-1.5 text-xs text-red-400 font-medium">{errors.email.message}</p>
+            )}
           </div>
 
           <div>
@@ -85,13 +102,16 @@ export const Login: React.FC = () => {
               </span>
               <input
                 type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register('password')}
                 placeholder="••••••••"
-                className="w-full pl-11 pr-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all duration-200"
+                className={`w-full pl-11 pr-4 py-3 bg-slate-900/50 border rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 transition-all duration-200 ${
+                  errors.password ? 'border-red-500 focus:border-red-500' : 'border-slate-700/50 focus:border-violet-500'
+                }`}
               />
             </div>
+            {errors.password && (
+              <p className="mt-1.5 text-xs text-red-400 font-medium">{errors.password.message}</p>
+            )}
           </div>
 
           <button
