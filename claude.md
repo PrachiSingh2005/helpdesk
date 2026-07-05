@@ -65,10 +65,41 @@ The database is initialized in PostgreSQL with the name `helpdesk` under port `5
 
 We have seeded the database with the following default credentials:
 
-| Role | Email | Password |
-| :--- | :--- | :--- |
-| **System Administrator** | `admin@helpdesk.edu` | `admin123` |
-| **Support Agent** | `agent@helpdesk.edu` | `agent123` |
+| Role | Email | Password | Source |
+| :--- | :--- | :--- | :--- |
+| **System Administrator** | `admin@example.com` | `password123` | Configured via `ADMIN_EMAIL` & `ADMIN_PASSWORD` in `.env` |
+| **Support Agent** | `agent@helpdesk.edu` | `agent123` | Hardcoded seeder fallback |
+
+---
+
+## 🔒 Authentication Flow Detail
+
+### 1. Backend Custom Session Authentication
+*   **Mechanism**: The server uses custom database-backed sessions instead of stateless JWTs.
+*   **Token Storage**: Upon login, a secure session token is generated (`crypto.randomBytes(32)`) and saved to the `Session` model.
+*   **Cookie Handling**: The session token is transmitted back to the client as an HTTP-only secure cookie named `sid`.
+*   **Middleware Protection**: An Express middleware (`authMiddleware`) intercepts requests, parses `sid` cookies (or `x-session-id` headers), checks database matches, validates expiration, and attaches the parsed user profile to `req.user`.
+
+### 2. Sign-Up Prevention
+*   **Public Registration Disabled**: There are no public user registration endpoints in the Express router. Attempting `POST` requests to `/api/auth/signup` or `/api/auth/sign-up` yields `404 Not Found`.
+*   **Better Auth Config**: Better Auth config in `auth.ts` explicitly restricts standard credentials registration:
+    ```typescript
+    emailAndPassword: {
+      enabled: true,
+      disableSignUp: true,
+    },
+    trustedOrigins: [process.env.TRUSTED_ORIGINS || "http://localhost:5173"],
+    ```
+*   **Admin-Only Agent Provisioning**: New support agents can only be created by an authenticated Administrator calling the `/api/agents` (POST) endpoint, which is protected by the `requireRole('ADMIN')` middleware.
+
+### 3. Frontend Authentication Architecture
+*   **Session Management**: Managed globally via `AuthContext` which queries `/api/auth/me` on initial mount to restore active cookie sessions.
+*   **Validation Rules**: Login form uses `react-hook-form` coupled with `zod` schema checks:
+    *   **Email**: Enforces standard email formats.
+    *   **Password**: Enforces minimum length of 6 characters.
+*   **Role Protection**: Access to pages is guarded via the `<ProtectedRoute>` component which checks the user context against a typesafe `Role` enum defined in `client/src/utils/api.ts`:
+    *   `Role.ADMIN`
+    *   `Role.AGENT`
 
 ---
 
