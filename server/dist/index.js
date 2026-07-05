@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { rateLimit } from 'express-rate-limit';
 import { config } from './config';
 import { authMiddleware } from './middleware/auth';
 // Router imports
@@ -11,6 +12,17 @@ import kbRoutes from './routes/kb';
 import emailRoutes from './routes/emails';
 import dashboardRoutes from './routes/dashboard';
 const app = express();
+// Rate Limiting only in Production Environment
+if (process.env.NODE_ENV === 'production') {
+    const limiter = rateLimit({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        limit: 100, // Limit each IP to 100 requests per 15 minutes
+        standardHeaders: 'draft-6',
+        legacyHeaders: false,
+        message: { error: 'Too many requests from this IP, please try again after 15 minutes.' },
+    });
+    app.use(limiter);
+}
 // Standard Middlewares
 app.use(cors({
     origin: config.CLIENT_URL,

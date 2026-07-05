@@ -1,5 +1,12 @@
 import dotenv from 'dotenv';
-dotenv.config();
+import path from 'path';
+
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
+dotenv.config({ path: path.resolve(process.cwd(), envFile) });
+
+if (process.env.NODE_ENV === 'test' && process.env.TEST_DATABASE_URL) {
+  process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
+}
 
 export const config = {
   PORT: process.env.PORT || '5000',

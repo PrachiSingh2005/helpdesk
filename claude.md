@@ -107,6 +107,18 @@ We have seeded the database with the following default credentials:
 *   **Sidebar Navigation**: Added a tab labeled **"Users"** using the `UserCog` icon inside [DashboardLayout.tsx](file:///d:/HelpDesk/client/src/components/DashboardLayout.tsx) to redirect to `/users`. It is only visible when the logged-in user is an administrator.
 *   **Quick Actions Panel**: Added an **"Administrator Quick Actions"** control panel in the main area of [DashboardHome.tsx](file:///d:/HelpDesk/client/src/pages/DashboardHome.tsx) when logged in as an administrator. It provides quick configuration paths to `/dashboard/agents` and `/users`.
 
+### 5. Rate Limiting Middleware
+*   **Production Context**: Rate limiting is enabled conditionally only in production environments (`NODE_ENV === 'production'`).
+*   **Package**: Implemented via `express-rate-limit` with a configuration window of 15 minutes and a maximum of 100 requests per IP window.
+
+### 6. Testing & Playwright Configuration
+*   **Test Database (`helpdesk_test`)**: An isolated PostgreSQL database configured specifically for E2E tests. Created, migrated, and seeded with mock datasets using Prisma.
+*   **Database Override (`TEST_DATABASE_URL`)**: Set inside [server/.env](file:///d:/HelpDesk/server/.env) and [server/.env.test](file:///d:/HelpDesk/server/.env.test). Setting `NODE_ENV=test` triggers [config.ts](file:///d:/HelpDesk/server/src/config.ts) to override the connection parameter `DATABASE_URL` with `TEST_DATABASE_URL` to prevent tests from modifying development data.
+*   **Playwright Config**: Located at [playwright.config.ts](file:///d:/HelpDesk/client/playwright.config.ts), it initiates a dual isolated test environment on run:
+    1. Backend server booted on port `5001` with `NODE_ENV=test`.
+    2. Vite client booted on port `5174` with `BACKEND_PORT=5001` (to proxy queries to the test backend).
+*   **Scripts**: Added E2E running scripts to [package.json](file:///d:/HelpDesk/client/package.json) (`test:e2e` and `test:e2e-ui`).
+
 ---
 
 ## 🔌 Tool Integration: Context7 MCP
