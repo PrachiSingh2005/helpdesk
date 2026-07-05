@@ -16,7 +16,7 @@ This file serves as the project memory for the AI-Powered Ticket Management Syst
 - **Frontend**: Vite + React with TypeScript, Tailwind CSS v4, Lucide React (Icons), React Router.
 - **Backend**: Node.js with Express and TypeScript running on **Bun**.
 - **Database**: PostgreSQL (local instance running on version 18).
-- **ORM**: Prisma.
+- **ORM**: Prisma v7 (configured with driver adapter `@prisma/adapter-pg` and local connection pooling).
 - **AI**: Anthropic Claude API (Haiku model `claude-3-haiku-20240307`).
 - **Outbound Email**: SendGrid (falls back to console log simulation in development).
 
@@ -38,7 +38,7 @@ d:\HelpDesk
 │
 ├── server/                     # Express + TS Backend (Bun)
 │   ├── prisma/
-│   │   ├── schema.prisma       # Database model structures
+│   │   ├── schema.prisma       # Database model structures (connection URLs moved to config)
 │   │   └── seed.ts             # Initial DB seeder
 │   ├── src/
 │   │   ├── middleware/         # Session auth validators
@@ -48,7 +48,8 @@ d:\HelpDesk
 │   │   ├── db.ts               # Prisma Client singleton
 │   │   └── index.ts            # Express server entry point
 │   ├── .env                    # Environment keys
-│   └── package.json
+│   ├── package.json
+│   └── prisma.config.ts        # Prisma 7 central configuration file
 │
 ├── docker-compose.yml          # PostgreSQL container definition
 ├── project-scope.md            # Features & architecture spec
@@ -110,14 +111,6 @@ We have seeded the database with the following default credentials:
 ### 5. Rate Limiting Middleware
 *   **Production Context**: Rate limiting is enabled conditionally only in production environments (`NODE_ENV === 'production'`).
 *   **Package**: Implemented via `express-rate-limit` with a configuration window of 15 minutes and a maximum of 100 requests per IP window.
-
-### 6. Testing & Playwright Configuration
-*   **Test Database (`helpdesk_test`)**: An isolated PostgreSQL database configured specifically for E2E tests. Created, migrated, and seeded with mock datasets using Prisma.
-*   **Database Override (`TEST_DATABASE_URL`)**: Set inside [server/.env](file:///d:/HelpDesk/server/.env) and [server/.env.test](file:///d:/HelpDesk/server/.env.test). Setting `NODE_ENV=test` triggers [config.ts](file:///d:/HelpDesk/server/src/config.ts) to override the connection parameter `DATABASE_URL` with `TEST_DATABASE_URL` to prevent tests from modifying development data.
-*   **Playwright Config**: Located at [playwright.config.ts](file:///d:/HelpDesk/client/playwright.config.ts), it initiates a dual isolated test environment on run:
-    1. Backend server booted on port `5001` with `NODE_ENV=test`.
-    2. Vite client booted on port `5174` with `BACKEND_PORT=5001` (to proxy queries to the test backend).
-*   **Scripts**: Added E2E running scripts to [package.json](file:///d:/HelpDesk/client/package.json) (`test:e2e` and `test:e2e-ui`).
 
 ---
 
