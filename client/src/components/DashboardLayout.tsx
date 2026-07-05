@@ -94,10 +94,22 @@ export const DashboardLayout: React.FC = () => {
               ? 'Agent Operations'
               : 'Support Dashboard'}
           </h1>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-400 bg-slate-800/50 border border-slate-700/50 px-3 py-1.5 rounded-full font-medium">
-              {user?.email}
-            </span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-300">
+                Welcome, {user ? (user.email.split('@')[0].charAt(0).toUpperCase() + user.email.split('@')[0].slice(1)) : ''}
+              </span>
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full font-sans">
+                {user?.role}
+              </span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/20 hover:bg-red-900/30 text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/30 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Sign Out
+            </button>
           </div>
         </header>
 
