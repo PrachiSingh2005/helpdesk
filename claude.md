@@ -13,7 +13,7 @@ This file serves as the project memory for the AI-Powered Ticket Management Syst
 ---
 
 ## 🛠️ Technology Stack
-- **Frontend**: Vite + React with TypeScript, Tailwind CSS v4, Lucide React (Icons), React Router.
+- **Frontend**: Vite + React with TypeScript, Tailwind CSS v4, Lucide React (Icons), React Router, **Axios** (HTTP client), **TanStack React Query** (data fetching).
 - **Backend**: Node.js with Express and TypeScript running on **Bun**.
 - **Database**: PostgreSQL (local instance running on version 18).
 - **ORM**: Prisma v7 (configured with driver adapter `@prisma/adapter-pg` and local connection pooling).
@@ -111,6 +111,20 @@ We have seeded the database with the following default credentials:
 ### 5. Rate Limiting Middleware
 *   **Production Context**: Rate limiting is enabled conditionally only in production environments (`NODE_ENV === 'production'`).
 *   **Package**: Implemented via `express-rate-limit` with a configuration window of 15 minutes and a maximum of 100 requests per IP window.
+
+---
+
+## 📡 API Client & Query Management
+
+### 1. Axios Instance
+*   **Location**: [api.ts](file:///d:/HelpDesk/client/src/utils/api.ts)
+*   **Configuration**: Configured with `withCredentials: true` to support HTTP-only database session cookies (`sid`).
+*   **Usage**: The custom `request` wrapper translates standard method/body parameters and executes them via `axiosInstance`. All API methods under the `api` object (e.g. `api.users.list`) leverage this instance.
+
+### 2. TanStack React Query
+*   **Provider**: The app is wrapped with `QueryClientProvider` using a `QueryClient` initialized in [App.tsx](file:///d:/HelpDesk/client/src/App.tsx).
+*   **Configuration**: Default query options disable `refetchOnWindowFocus` and `retry` to prevent excessive polling during development.
+*   **Usage**: Components (e.g. [Users.tsx](file:///d:/HelpDesk/client/src/pages/Users.tsx)) fetch and manage remote state utilizing the typesafe `useQuery` hook.
 
 ---
 

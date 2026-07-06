@@ -11,6 +11,17 @@ import { AgentManager } from './pages/AgentManager';
 import { Users } from './pages/Users';
 import { Loader2 } from 'lucide-react';
 import { Role } from './utils/api';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: false,
+    },
+  },
+});
+
 
 /**
  * Route authorization protector. Evaluates login status and role privileges.
@@ -46,38 +57,40 @@ const ProtectedRoute: React.FC<{ allowedRoles?: Array<Role> }> = ({
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public login route */}
-          <Route path="/login" element={<Login />} />
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public login route */}
+            <Route path="/login" element={<Login />} />
 
-          {/* Secure authenticated dashboard routes */}
-          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={[Role.ADMIN, Role.AGENT]} />}>
-            <Route element={<DashboardLayout />}>
-              <Route index element={<DashboardHome />} />
-              <Route path="tickets" element={<TicketsList />} />
-              <Route path="tickets/:id" element={<TicketDetail />} />
-              <Route path="kb" element={<KBManager />} />
-              {/* Admin only subroute */}
-              <Route path="agents" element={<ProtectedRoute allowedRoles={[Role.ADMIN]} />}>
-                <Route index element={<AgentManager />} />
+            {/* Secure authenticated dashboard routes */}
+            <Route path="/dashboard" element={<ProtectedRoute allowedRoles={[Role.ADMIN, Role.AGENT]} />}>
+              <Route element={<DashboardLayout />}>
+                <Route index element={<DashboardHome />} />
+                <Route path="tickets" element={<TicketsList />} />
+                <Route path="tickets/:id" element={<TicketDetail />} />
+                <Route path="kb" element={<KBManager />} />
+                {/* Admin only subroute */}
+                <Route path="agents" element={<ProtectedRoute allowedRoles={[Role.ADMIN]} />}>
+                  <Route index element={<AgentManager />} />
+                </Route>
               </Route>
             </Route>
-          </Route>
 
-          {/* Admin only page at /users */}
-          <Route path="/users" element={<ProtectedRoute allowedRoles={[Role.ADMIN]} />}>
-            <Route element={<DashboardLayout />}>
-              <Route index element={<Users />} />
+            {/* Admin only page at /users */}
+            <Route path="/users" element={<ProtectedRoute allowedRoles={[Role.ADMIN]} />}>
+              <Route element={<DashboardLayout />}>
+                <Route index element={<Users />} />
+              </Route>
             </Route>
-          </Route>
 
-          {/* Root redirect */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+            {/* Root redirect */}
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 

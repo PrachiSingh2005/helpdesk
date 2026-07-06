@@ -76,23 +76,32 @@ export interface DashboardStats {
   };
 }
 
-// API client wrapper for relative API calls (proxied by Vite)
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(path, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-    ...options,
-  });
+import axios from 'axios';
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `HTTP error! Status: ${response.status}`);
+// Create an axios instance configured with withCredentials to support database session cookies
+const axiosInstance = axios.create({
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
+});
+
+// API client wrapper for relative API calls using Axios
+async function request<T>(path: string, options: any = {}): Promise<T> {
+  try {
+    const response = await axiosInstance({
+      url: path,
+      method: options.method || 'GET',
+      data: options.body ? JSON.parse(options.body) : undefined,
+      headers: options.headers,
+    });
+    return response.data;
+  } catch (error: any) {
+    const errMsg = error.response?.data?.error || error.message || 'API request failed';
+    throw new Error(errMsg);
   }
-
-  return response.json() as Promise<T>;
 }
+
 
 export const api = {
   auth: {

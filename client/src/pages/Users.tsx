@@ -1,29 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api } from '../utils/api';
-import type { EndUser } from '../utils/api';
 import { Loader2 } from 'lucide-react';
 
 export const Users: React.FC = () => {
-  const [users, setUsers] = useState<EndUser[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['users'],
+    queryFn: () => api.users.list(),
+  });
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const data = await api.users.list();
-      setUsers(data.users);
-      setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load users list.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const users = data?.users || [];
 
   const formatDate = (dateString: string) => {
     try {
@@ -34,13 +20,15 @@ export const Users: React.FC = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-full min-h-[400px] items-center justify-center">
         <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
       </div>
     );
   }
+
+  const errorMessage = error instanceof Error ? error.message : error ? String(error) : null;
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -49,9 +37,9 @@ export const Users: React.FC = () => {
         Users
       </h2>
 
-      {error && (
+      {errorMessage && (
         <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-200 text-sm rounded-xl">
-          {error}
+          {errorMessage}
         </div>
       )}
 
@@ -97,4 +85,5 @@ export const Users: React.FC = () => {
     </div>
   );
 };
+
 export default Users;
