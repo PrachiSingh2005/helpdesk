@@ -38,7 +38,7 @@ test.describe('HelpDesk E2E Testing Suite - Auth Scenarios & Edge Cases', () => 
     // Navigate to Users page via sidebar link
     await page.getByRole('link', { name: 'Users', exact: true }).click();
     await expect(page).toHaveURL(/\/users/);
-    await expect(page.locator('h2:has-text("User Management")')).toBeVisible();
+    await expect(page.locator('h2:has-text("Users")')).toBeVisible();
   });
 
   test('3. Agent can log in successfully but cannot see or access admin pages', async ({ page }) => {

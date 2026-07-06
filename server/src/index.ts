@@ -12,8 +12,10 @@ import ticketRoutes from './routes/tickets';
 import kbRoutes from './routes/kb';
 import emailRoutes from './routes/emails';
 import dashboardRoutes from './routes/dashboard';
+import userRoutes from './routes/users';
 
 const app = express();
+
 
 // Rate Limiting only in Production Environment
 if (process.env.NODE_ENV === 'production') {
@@ -48,6 +50,8 @@ app.use('/api/tickets', ticketRoutes);
 app.use('/api/kb', kbRoutes);
 app.use('/api/emails', emailRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/users', userRoutes);
+
 
 // Global Error Handler Middleware
 import { errorHandler } from './middleware/error';

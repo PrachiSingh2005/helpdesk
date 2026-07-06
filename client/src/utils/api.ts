@@ -12,6 +12,16 @@ export interface User {
   createdAt?: string;
 }
 
+export interface EndUser {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  createdAt: string;
+}
+
+
+
 export interface Message {
   id: string;
   ticketId: string;
@@ -146,6 +156,16 @@ export const api = {
         body: JSON.stringify(agent),
       }),
     delete: (id: string) => request<{ message: string }>(`/api/agents/${id}`, { method: 'DELETE' }),
+  },
+  users: {
+    list: (params?: { search?: string }) => {
+      const query = new URLSearchParams();
+      if (params?.search) {
+        query.append('search', params.search);
+      }
+      return request<{ users: EndUser[] }>(`/api/users?${query.toString()}`);
+    },
+    delete: (email: string) => request<{ message: string }>(`/api/users/${email}`, { method: 'DELETE' }),
   },
   dashboard: {
     stats: () => request<DashboardStats>('/api/dashboard/stats'),

@@ -1,10 +1,10 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { Role, TicketStatus, TicketCategory, MessageSender } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import { prisma } from '../src/db';
 
 dotenv.config();
 
-const prisma = new PrismaClient();
 
 async function main() {
   console.log('Seeding database...');
