@@ -84,19 +84,27 @@ export const DashboardLayout: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header Navigation Bar */}
         <header className="h-16 bg-slate-900/20 border-b border-slate-800/80 flex items-center justify-between px-8 backdrop-blur-md">
-          <h1 className="text-lg font-semibold text-white">
-            {location.pathname === '/dashboard'
-              ? 'Performance Overview'
-              : location.pathname.startsWith('/dashboard/tickets')
-              ? 'Ticket Management Queue'
-              : location.pathname.startsWith('/dashboard/kb')
-              ? 'Knowledge Base Editor'
-              : location.pathname.startsWith('/dashboard/agents')
-              ? 'Agent Operations'
-              : location.pathname.startsWith('/users')
-              ? 'User Administration'
-              : 'Support Dashboard'}
-          </h1>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/dashboard"
+              className="text-lg font-bold text-white hover:text-violet-400 transition-colors"
+            >
+              Helpdesk
+            </Link>
+            <h1 className="text-sm font-medium text-slate-500">
+              {location.pathname === '/dashboard'
+                ? 'Performance Overview'
+                : location.pathname.startsWith('/dashboard/tickets')
+                ? 'Ticket Management Queue'
+                : location.pathname.startsWith('/dashboard/kb')
+                ? 'Knowledge Base Editor'
+                : location.pathname.startsWith('/dashboard/agents')
+                ? 'Agent Operations'
+                : location.pathname.startsWith('/users')
+                ? 'Users'
+                : 'Support Dashboard'}
+            </h1>
+          </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold text-slate-300">

@@ -1,7 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../utils/api';
-import { Loader2 } from 'lucide-react';
 
 export const Users: React.FC = () => {
   const { data, isLoading, error } = useQuery({
@@ -20,13 +19,24 @@ export const Users: React.FC = () => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex h-full min-h-[400px] items-center justify-center">
-        <Loader2 className="w-8 h-8 text-violet-500 animate-spin" />
-      </div>
-    );
-  }
+  const renderSkeletons = () => {
+    return Array.from({ length: 3 }).map((_, idx) => (
+      <tr key={idx} className="animate-pulse">
+        <td className="py-4 px-6">
+          <div className="h-4 w-32 bg-slate-800 rounded-md"></div>
+        </td>
+        <td className="py-4 px-6">
+          <div className="h-4 w-48 bg-slate-800 rounded-md"></div>
+        </td>
+        <td className="py-4 px-6">
+          <div className="h-5 w-16 bg-slate-800 rounded-full"></div>
+        </td>
+        <td className="py-4 px-6">
+          <div className="h-4 w-24 bg-slate-800 rounded-md"></div>
+        </td>
+      </tr>
+    ));
+  };
 
   const errorMessage = error instanceof Error ? error.message : error ? String(error) : null;
 
@@ -56,28 +66,32 @@ export const Users: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/40">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-slate-900/20 transition-colors">
-                  <td className="py-4 px-6 text-sm font-semibold text-white">
-                    {user.name}
-                  </td>
-                  <td className="py-4 px-6 text-sm text-slate-300">
-                    {user.email}
-                  </td>
-                  <td className="py-4 px-6 text-sm">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
-                      user.role.toLowerCase() === 'admin'
-                        ? 'bg-white text-slate-950 border border-white'
-                        : 'bg-slate-800 text-slate-300 border border-slate-700/50'
-                    }`}>
-                      {user.role.toLowerCase()}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-sm text-slate-300">
-                    {formatDate(user.createdAt)}
-                  </td>
-                </tr>
-              ))}
+              {isLoading ? (
+                renderSkeletons()
+              ) : (
+                users.map((user) => (
+                  <tr key={user.id} className="hover:bg-slate-900/20 transition-colors">
+                    <td className="py-4 px-6 text-sm font-semibold text-white">
+                      {user.name}
+                    </td>
+                    <td className="py-4 px-6 text-sm text-slate-300">
+                      {user.email}
+                    </td>
+                    <td className="py-4 px-6 text-sm">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
+                        user.role.toLowerCase() === 'admin'
+                          ? 'bg-white text-slate-950 border border-white'
+                          : 'bg-slate-800 text-slate-300 border border-slate-700/50'
+                      }`}>
+                        {user.role.toLowerCase()}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-sm text-slate-300">
+                      {formatDate(user.createdAt)}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
