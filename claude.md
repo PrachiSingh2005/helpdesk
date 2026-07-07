@@ -13,8 +13,8 @@ This file serves as the project memory for the AI-Powered Ticket Management Syst
 ---
 
 ## 🛠️ Technology Stack
-- **Frontend**: Vite + React with TypeScript, Tailwind CSS v4, Lucide React (Icons), React Router, **Axios** (HTTP client), **TanStack React Query** (data fetching).
-- **Backend**: Node.js with Express and TypeScript running on **Bun**.
+- **Frontend**: Vite + React with TypeScript, Tailwind CSS v4, Lucide React (Icons), React Router, **Axios** (HTTP client), **TanStack React Query** (data fetching), **Zod** (client-side form validation).
+- **Backend**: Node.js with Express and TypeScript running on **Bun**, with **Zod** schema request body validation.
 - **Database**: PostgreSQL (local instance running on version 18).
 - **ORM**: Prisma v7 (configured with driver adapter `@prisma/adapter-pg` and local connection pooling).
 - **AI**: Anthropic Claude API (Haiku model `claude-3-haiku-20240307`).
@@ -92,13 +92,14 @@ We have seeded the database with the following default credentials:
     },
     trustedOrigins: [process.env.TRUSTED_ORIGINS || "http://localhost:5173"],
     ```
-*   **Admin-Only Agent Provisioning**: New support agents can only be created by an authenticated Administrator calling the `/api/agents` (POST) endpoint, which is protected by the `requireRole('ADMIN')` middleware.
+*   **Admin-Only Agent Provisioning**: New support agents can only be created by an authenticated Administrator calling the `/api/agents` (POST) endpoint, which is protected by the `requireRole(Role.ADMIN)` middleware using the Prisma `Role` enum.
+*   **Role Enum Enforcement**: All role assignments during user and agent creation (e.g., in `/api/users` and `/api/agents` endpoints) strictly leverage the database-generated `Role` enum (`Role.AGENT` and `Role.ADMIN` imported from `@prisma/client`) instead of hardcoded strings.
 
-### 3. Frontend Authentication Architecture
+### 3. Frontend Form & Authentication Architecture
 *   **Session Management**: Managed globally via `AuthContext` which queries `/api/auth/me` on initial mount to restore active cookie sessions.
-*   **Validation Rules**: Login form uses `react-hook-form` coupled with `zod` schema checks:
+*   **Form Validation Library**: Client-side forms (including `Login.tsx` and the `Users.tsx` user management panel) leverage **`react-hook-form`** and **`zod`** schema resolvers (`@hookform/resolvers/zod`) to validate inputs.
     *   **Email**: Enforces standard email formats.
-    *   **Password**: Enforces minimum length of 6 characters.
+    *   **Password**: Enforces minimum length constraints (minimum 6 characters on login, 8 characters on user creation).
 *   **Role Protection**: Access to pages is guarded via the `<ProtectedRoute>` component which checks the user context against a typesafe `Role` enum defined in `client/src/utils/api.ts`:
     *   `Role.ADMIN`
     *   `Role.AGENT`
@@ -125,6 +126,29 @@ We have seeded the database with the following default credentials:
 *   **Provider**: The app is wrapped with `QueryClientProvider` using a `QueryClient` initialized in [App.tsx](file:///d:/HelpDesk/client/src/App.tsx).
 *   **Configuration**: Default query options disable `refetchOnWindowFocus` and `retry` to prevent excessive polling during development.
 *   **Usage**: Components (e.g. [Users.tsx](file:///d:/HelpDesk/client/src/pages/Users.tsx)) fetch and manage remote state utilizing the typesafe `useQuery` hook.
+
+---
+
+## 📦 Shared Core Package & Schema Management
+
+To avoid duplicate validation logic and mismatching error messages, the workspace is structured as a monorepo workspace containing a `core` package alongside `client` and `server`.
+
+### 1. Structure
+- `core/` contains general shared code, models, and Zod schemas (e.g. `createUserSchema`).
+- `core/package.json` compiles TypeScript to `dist/` and lists `zod` as a dependency.
+- Both `client` and `server` reference the local `core` package in their `dependencies` using the `"core": "workspace:*"` workspace mapping.
+
+### 2. Instructions for Defining Zod Schemas
+1. **Define Schema**: Add your Zod schema and any inferred TypeScript types in [index.ts](file:///d:/HelpDesk/core/src/index.ts). Ensure error messages are compatible with both frontend expectations (e.g., unit tests) and backend structure.
+2. **Build Package**: Build the `core` package to generate compiled JS and type declarations by running:
+   ```bash
+   bun run build
+   ```
+   *(Executed inside the `d:/HelpDesk/core` directory)*
+3. **Reference Schema**: Import the schema or type in your client/server files directly from `'core'`:
+   ```typescript
+   import { createUserSchema } from 'core';
+   ```
 
 ---
 

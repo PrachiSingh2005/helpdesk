@@ -2,6 +2,11 @@
   "name": "helpdesk-workspace",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "client",
+    "server",
+    "core"
+  ],
   "scripts": {
     "test:e2e": "bun --cwd=client run test:e2e"
   }

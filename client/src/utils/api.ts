@@ -174,6 +174,11 @@ export const api = {
       }
       return request<{ users: EndUser[] }>(`/api/users?${query.toString()}`);
     },
+    create: (data: { name: string; email: string; password: string }) =>
+      request<{ user: EndUser }>('/api/users', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
     delete: (email: string) => request<{ message: string }>(`/api/users/${email}`, { method: 'DELETE' }),
   },
   dashboard: {

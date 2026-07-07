@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import { Role } from '@prisma/client';
 import { prisma } from '../db';
 import { requireRole } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
@@ -7,7 +8,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 const router = Router();
 
 // Protect all routes within this router to ADMINs only
-router.use(requireRole('ADMIN'));
+router.use(requireRole(Role.ADMIN));
 
 // Get all registered agents
 router.get('/', asyncHandler(async (req, res) => {
@@ -41,7 +42,7 @@ router.post('/', asyncHandler(async (req, res) => {
     data: {
       email,
       passwordHash,
-      role: role === 'ADMIN' ? 'ADMIN' : 'AGENT',
+      role: role === Role.ADMIN ? Role.ADMIN : Role.AGENT,
     },
     select: {
       id: true,

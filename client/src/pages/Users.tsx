@@ -1,8 +1,12 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { CreateUserForm } from '../components/CreateUserForm';
+import { UsersTable } from '../components/UsersTable';
+import type { CreateUserSchemaType } from 'core';
 import { api } from '../utils/api';
 
 export const Users: React.FC = () => {
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ['users'],
     queryFn: () => api.users.list(),
@@ -10,42 +14,41 @@ export const Users: React.FC = () => {
 
   const users = data?.users || [];
 
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      return `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
-    } catch (e) {
-      return dateString;
-    }
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSubmitError(null);
   };
 
-  const renderSkeletons = () => {
-    return Array.from({ length: 3 }).map((_, idx) => (
-      <tr key={idx} className="animate-pulse">
-        <td className="py-4 px-6">
-          <div className="h-4 w-32 bg-slate-800 rounded-md"></div>
-        </td>
-        <td className="py-4 px-6">
-          <div className="h-4 w-48 bg-slate-800 rounded-md"></div>
-        </td>
-        <td className="py-4 px-6">
-          <div className="h-5 w-16 bg-slate-800 rounded-full"></div>
-        </td>
-        <td className="py-4 px-6">
-          <div className="h-4 w-24 bg-slate-800 rounded-md"></div>
-        </td>
-      </tr>
-    ));
+  const onSubmit = async (formData: CreateUserSchemaType) => {
+    setSubmitError(null);
+    try {
+      await api.users.create(formData);
+      await queryClient.invalidateQueries({ queryKey: ['users'] });
+      handleCloseModal();
+    } catch (err: any) {
+      setSubmitError(err.message || 'Failed to create user. Please try again.');
+    }
   };
 
   const errorMessage = error instanceof Error ? error.message : error ? String(error) : null;
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      {/* Heading */}
-      <h2 className="text-2xl font-bold text-white tracking-tight">
-        Users
-      </h2>
+      {/* Heading & Actions */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-white tracking-tight">
+          Users
+        </h2>
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="px-4 py-2 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-sm font-semibold rounded-xl transition-all shadow-lg hover:shadow-violet-600/25 active:scale-[0.98]"
+        >
+          Create User
+        </button>
+      </div>
 
       {errorMessage && (
         <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-200 text-sm rounded-xl">
@@ -53,49 +56,34 @@ export const Users: React.FC = () => {
         </div>
       )}
 
-      {/* Users Table */}
-      <div className="bg-slate-900/40 border border-slate-800/80 backdrop-blur-xl rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-left">
-            <thead>
-              <tr className="border-b border-slate-800/80 text-xs font-bold uppercase tracking-wider text-slate-400">
-                <th className="py-4 px-6">Name</th>
-                <th className="py-4 px-6">Email</th>
-                <th className="py-4 px-6">Role</th>
-                <th className="py-4 px-6">Created</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/40">
-              {isLoading ? (
-                renderSkeletons()
-              ) : (
-                users.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-900/20 transition-colors">
-                    <td className="py-4 px-6 text-sm font-semibold text-white">
-                      {user.name}
-                    </td>
-                    <td className="py-4 px-6 text-sm text-slate-300">
-                      {user.email}
-                    </td>
-                    <td className="py-4 px-6 text-sm">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
-                        user.role.toLowerCase() === 'admin'
-                          ? 'bg-white text-slate-950 border border-white'
-                          : 'bg-slate-800 text-slate-300 border border-slate-700/50'
-                      }`}>
-                        {user.role.toLowerCase()}
-                      </span>
-                    </td>
-                    <td className="py-4 px-6 text-sm text-slate-300">
-                      {formatDate(user.createdAt)}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+      {/* Users Table Component */}
+      <UsersTable users={users} isLoading={isLoading} />
+
+      {/* Create User Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Create New User</h3>
+              <button
+                onClick={handleCloseModal}
+                className="text-slate-400 hover:text-white transition-colors"
+                aria-label="Close modal"
+              >
+                ✕
+              </button>
+            </div>
+
+            {submitError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-200 text-sm rounded-xl">
+                {submitError}
+              </div>
+            )}
+
+            <CreateUserForm onSubmit={onSubmit} onCancel={handleCloseModal} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
