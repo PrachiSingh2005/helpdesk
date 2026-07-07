@@ -33,6 +33,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
             role: true,
             createdAt: true,
             updatedAt: true,
+            deletedAt: true,
           },
         },
       },
@@ -49,8 +50,16 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       return next();
     }
 
+    // Check soft deletion
+    if (session.user.deletedAt !== null) {
+      await prisma.session.delete({ where: { id: session.id } });
+      res.clearCookie('sid');
+      return next();
+    }
+
     // Attach to request object
-    req.user = session.user;
+    const { deletedAt, ...userWithoutDeletedAt } = session.user;
+    req.user = userWithoutDeletedAt;
     req.sessionId = session.id;
     next();
   } catch (error) {

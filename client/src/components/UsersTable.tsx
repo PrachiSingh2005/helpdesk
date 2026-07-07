@@ -1,14 +1,15 @@
 import React from 'react';
-import { Edit3 } from 'lucide-react';
+import { Edit3, Trash2 } from 'lucide-react';
 import type { EndUser } from '../utils/api';
 
 interface UsersTableProps {
   users: EndUser[];
   isLoading: boolean;
   onEdit: (user: EndUser) => void;
+  onDelete: (user: EndUser) => void;
 }
 
-export const UsersTable: React.FC<UsersTableProps> = ({ users, isLoading, onEdit }) => {
+export const UsersTable: React.FC<UsersTableProps> = ({ users, isLoading, onEdit, onDelete }) => {
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -78,14 +79,26 @@ export const UsersTable: React.FC<UsersTableProps> = ({ users, isLoading, onEdit
                     {formatDate(user.createdAt)}
                   </td>
                   <td className="py-4 px-6 text-sm text-right">
-                    <button
-                      onClick={() => onEdit(user)}
-                      className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center"
-                      title="Edit User"
-                      aria-label={`Edit ${user.name}`}
-                    >
-                      <Edit3 className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => onEdit(user)}
+                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center"
+                        title="Edit User"
+                        aria-label={`Edit ${user.name}`}
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      {user.role.toLowerCase() !== 'admin' && (
+                        <button
+                          onClick={() => onDelete(user)}
+                          className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-950/20 rounded-xl transition-all cursor-pointer inline-flex items-center justify-center"
+                          title="Delete User"
+                          aria-label={`Delete ${user.name}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))

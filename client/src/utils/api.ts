@@ -184,7 +184,7 @@ export const api = {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
-    delete: (email: string) => request<{ message: string }>(`/api/users/${email}`, { method: 'DELETE' }),
+    delete: (id: string) => request<{ message: string }>(`/api/users/${id}`, { method: 'DELETE' }),
   },
   dashboard: {
     stats: () => request<DashboardStats>('/api/dashboard/stats'),

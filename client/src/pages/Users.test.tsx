@@ -12,6 +12,7 @@ vi.mock('../utils/api', () => ({
       list: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
+      delete: vi.fn(),
     },
   },
 }));
@@ -363,6 +364,111 @@ describe('Users Component', () => {
       await waitFor(() => {
         expect(screen.queryByText('Edit User')).not.toBeInTheDocument();
       });
+    });
+  });
+
+  describe('User Deletion', () => {
+    const mockUsers = [
+      {
+        id: 'admin-1',
+        name: 'Admin User',
+        email: 'admin@example.com',
+        role: 'ADMIN' as const,
+        createdAt: '2026-07-06T15:00:00.000Z',
+      },
+      {
+        id: 'agent-1',
+        name: 'Agent User',
+        email: 'agent@example.com',
+        role: 'AGENT' as const,
+        createdAt: '2026-07-05T10:00:00.000Z',
+      },
+    ];
+
+    beforeEach(() => {
+      vi.mocked(api.users.list).mockResolvedValue({ users: mockUsers });
+    });
+
+    it('does not display Delete button for admin users', async () => {
+      renderWithClient(<Users />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Admin User')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByRole('button', { name: 'Delete Admin User' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Delete Agent User' })).toBeInTheDocument();
+    });
+
+    it('opens and closes the delete confirmation modal on Cancel', async () => {
+      renderWithClient(<Users />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Agent User')).toBeInTheDocument();
+      });
+
+      const deleteButton = screen.getByRole('button', { name: 'Delete Agent User' });
+      fireEvent.click(deleteButton);
+
+      // Verify modal is open
+      expect(screen.getByText('Confirm Deletion')).toBeInTheDocument();
+      expect(screen.getByText(/Are you sure you want to delete user/)).toBeInTheDocument();
+
+      const cancelButton = screen.getByRole('button', { name: 'Cancel' });
+      fireEvent.click(cancelButton);
+
+      // Verify modal is closed
+      expect(screen.queryByText('Confirm Deletion')).not.toBeInTheDocument();
+      expect(api.users.delete).not.toHaveBeenCalled();
+    });
+
+    it('submits deletion successfully, calls API, and refetches users list', async () => {
+      vi.mocked(api.users.delete).mockResolvedValue({ message: 'User deleted successfully.' });
+
+      renderWithClient(<Users />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Agent User')).toBeInTheDocument();
+      });
+
+      const deleteButton = screen.getByRole('button', { name: 'Delete Agent User' });
+      fireEvent.click(deleteButton);
+
+      const confirmButton = screen.getByRole('button', { name: 'Confirm Delete' });
+      fireEvent.click(confirmButton);
+
+      await waitFor(() => {
+        expect(api.users.delete).toHaveBeenCalledWith('agent-1');
+      });
+
+      // Verify modal is closed
+      await waitFor(() => {
+        expect(screen.queryByText('Confirm Deletion')).not.toBeInTheDocument();
+      });
+    });
+
+    it('displays error message if deletion fails', async () => {
+      const serverError = 'Failed to delete user. Please try again.';
+      vi.mocked(api.users.delete).mockRejectedValue(new Error(serverError));
+
+      renderWithClient(<Users />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Agent User')).toBeInTheDocument();
+      });
+
+      const deleteButton = screen.getByRole('button', { name: 'Delete Agent User' });
+      fireEvent.click(deleteButton);
+
+      const confirmButton = screen.getByRole('button', { name: 'Confirm Delete' });
+      fireEvent.click(confirmButton);
+
+      await waitFor(() => {
+        expect(screen.getByText(serverError)).toBeInTheDocument();
+      });
+
+      // Modal remains open
+      expect(screen.getByText('Confirm Deletion')).toBeInTheDocument();
     });
   });
 });

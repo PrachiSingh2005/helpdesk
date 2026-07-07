@@ -53,4 +53,52 @@ test.describe('HelpDesk E2E Testing Suite - User Management Page', () => {
     await page.goto('/users');
     await expect(page).toHaveURL(/\/dashboard/);
   });
+
+  test('3. Admin can soft-delete an agent and the agent can no longer log in', async ({ page }) => {
+    // 1. Admin logs in
+    await page.goto('/login');
+    await page.locator('#email').fill('admin@example.com');
+    await page.locator('#password').fill('password123');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    // 2. Go to /users and create a new agent
+    await page.goto('/users');
+    await expect(page.locator('h2:has-text("Users")')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Create User' }).first().click();
+    await page.locator('#name-input').fill('Deletable Agent');
+    await page.locator('#email-input').fill('deletable-agent@example.com');
+    await page.locator('#password-input').fill('password12345');
+    await page.locator('button[type="submit"]').click();
+
+    // Verify user is in list
+    await expect(page.getByRole('cell', { name: 'Deletable-agent', exact: true })).toBeVisible();
+
+    // 3. Click delete, then cancel
+    await page.getByRole('button', { name: 'Delete Deletable-agent' }).click();
+    await expect(page.locator('h3:has-text("Confirm Deletion")')).toBeVisible();
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.locator('h3:has-text("Confirm Deletion")')).not.toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Deletable-agent', exact: true })).toBeVisible();
+
+    // 4. Click delete, then confirm
+    await page.getByRole('button', { name: 'Delete Deletable-agent' }).click();
+    await page.getByRole('button', { name: 'Confirm Delete' }).click();
+    await expect(page.locator('h3:has-text("Confirm Deletion")')).not.toBeVisible();
+    await expect(page.getByRole('cell', { name: 'Deletable-agent', exact: true })).not.toBeVisible();
+
+    // 5. Logout
+    await page.locator('button:has-text("Sign Out")').first().click();
+    await expect(page).toHaveURL(/\/login/);
+
+    // 6. Try to log in as the soft-deleted agent
+    await page.locator('#email').fill('deletable-agent@example.com');
+    await page.locator('#password').fill('password12345');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+
+    // Verify login fails
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page.locator('text=Invalid email or password.')).toBeVisible();
+  });
 });

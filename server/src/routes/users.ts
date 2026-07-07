@@ -16,6 +16,9 @@ router.get(
   '/',
   asyncHandler(async (req, res) => {
     const usersList = await prisma.user.findMany({
+      where: {
+        deletedAt: null,
+      },
       select: {
         id: true,
         email: true,
@@ -90,7 +93,7 @@ router.put(
   asyncHandler(async (req, res) => {
     const { id } = req.params;
     const userToUpdate = await prisma.user.findUnique({ where: { id } });
-    if (!userToUpdate) {
+    if (!userToUpdate || userToUpdate.deletedAt !== null) {
       return res.status(404).json({ error: 'User not found.' });
     }
 
@@ -135,6 +138,40 @@ router.put(
         name,
       },
     });
+  })
+);
+
+// DELETE /api/users/:id - Soft-delete a user
+router.delete(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const userToDelete = await prisma.user.findUnique({ where: { id } });
+    if (!userToDelete || userToDelete.deletedAt !== null) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    // Prevent deleting admin users
+    if (userToDelete.role === Role.ADMIN) {
+      return res.status(400).json({ error: 'System administrators cannot be deleted.' });
+    }
+
+    const [prefix, domain] = userToDelete.email.split('@');
+    const softDeletedEmail = `${prefix}-deleted-${Date.now()}@${domain}`;
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        email: softDeletedEmail,
+      },
+    });
+
+    // Revoke any active sessions for the deleted user
+    await prisma.session.deleteMany({ where: { userId: id } });
+
+    return res.json({ message: 'User deleted successfully.' });
   })
 );
 

@@ -13,6 +13,9 @@ router.use(requireRole(Role.ADMIN));
 // Get all registered agents
 router.get('/', asyncHandler(async (req, res) => {
   const agents = await prisma.user.findMany({
+    where: {
+      deletedAt: null,
+    },
     select: {
       id: true,
       email: true,
@@ -64,7 +67,30 @@ router.delete('/:id', asyncHandler(async (req, res) => {
   }
 
   try {
-    await prisma.user.delete({ where: { id } });
+    const agentToDelete = await prisma.user.findUnique({ where: { id } });
+    if (!agentToDelete || agentToDelete.deletedAt !== null) {
+      return res.status(404).json({ error: 'Agent not found.' });
+    }
+
+    // Prevent deleting admin users
+    if (agentToDelete.role === Role.ADMIN) {
+      return res.status(400).json({ error: 'System administrators cannot be deleted.' });
+    }
+
+    const [prefix, domain] = agentToDelete.email.split('@');
+    const softDeletedEmail = `${prefix}-deleted-${Date.now()}@${domain}`;
+
+    await prisma.user.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        email: softDeletedEmail,
+      },
+    });
+
+    // Revoke any active sessions for the deleted agent
+    await prisma.session.deleteMany({ where: { userId: id } });
+
     return res.json({ message: 'Agent deleted successfully.' });
   } catch (error: any) {
     if (error.code === 'P2025') {
