@@ -35,7 +35,7 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({ onSubmit, onCanc
           autoComplete="off"
           {...register('name')}
           className={`w-full h-10 px-3 bg-slate-950 border ${
-            errors.name ? 'border-red-500 focus:ring-red-500/25' : 'border-slate-800 focus:ring-violet-500/25'
+            errors.name ? 'border-destructive focus:ring-destructive/25' : 'border-slate-800 focus:ring-violet-500/25'
           } rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
           placeholder="Enter name"
         />
@@ -54,7 +54,7 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({ onSubmit, onCanc
           autoComplete="new-email"
           {...register('email')}
           className={`w-full h-10 px-3 bg-slate-950 border ${
-            errors.email ? 'border-red-500 focus:ring-red-500/25' : 'border-slate-800 focus:ring-violet-500/25'
+            errors.email ? 'border-destructive focus:ring-destructive/25' : 'border-slate-800 focus:ring-violet-500/25'
           } rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
           placeholder="Enter email address"
         />
@@ -73,7 +73,7 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({ onSubmit, onCanc
           autoComplete="new-password"
           {...register('password')}
           className={`w-full h-10 px-3 bg-slate-950 border ${
-            errors.password ? 'border-red-500 focus:ring-red-500/25' : 'border-slate-800 focus:ring-violet-500/25'
+            errors.password ? 'border-destructive focus:ring-destructive/25' : 'border-slate-800 focus:ring-violet-500/25'
           } rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
           placeholder="Enter password"
         />

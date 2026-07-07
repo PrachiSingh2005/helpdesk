@@ -168,6 +168,41 @@ describe('Users Component', () => {
       expect(screen.queryByText('Create New User')).not.toBeInTheDocument();
     });
 
+    it('closes the modal when clicking on the backdrop', async () => {
+      renderWithClient(<Users />);
+
+      // Trigger button opens modal
+      const openButton = screen.getByRole('button', { name: 'Create User' });
+      fireEvent.click(openButton);
+
+      // Verify modal is open
+      expect(screen.getByText('Create New User')).toBeInTheDocument();
+
+      // Click on backdrop
+      const backdrop = screen.getByLabelText('Modal backdrop');
+      fireEvent.click(backdrop);
+
+      // Verify modal is closed
+      expect(screen.queryByText('Create New User')).not.toBeInTheDocument();
+    });
+
+    it('closes the modal when pressing the Escape key', async () => {
+      renderWithClient(<Users />);
+
+      // Trigger button opens modal
+      const openButton = screen.getByRole('button', { name: 'Create User' });
+      fireEvent.click(openButton);
+
+      // Verify modal is open
+      expect(screen.getByText('Create New User')).toBeInTheDocument();
+
+      // Press Escape key
+      fireEvent.keyDown(window, { key: 'Escape', code: 'Escape' });
+
+      // Verify modal is closed
+      expect(screen.queryByText('Create New User')).not.toBeInTheDocument();
+    });
+
     it('validates required fields and length constraints', async () => {
       renderWithClient(<Users />);
 

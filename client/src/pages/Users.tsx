@@ -22,6 +22,21 @@ export const Users: React.FC = () => {
     setSubmitError(null);
   };
 
+  React.useEffect(() => {
+    if (!isModalOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCloseModal();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isModalOpen]);
+
   const onSubmit = async (formData: CreateUserSchemaType) => {
     setSubmitError(null);
     try {
@@ -61,7 +76,15 @@ export const Users: React.FC = () => {
 
       {/* Create User Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              handleCloseModal();
+            }
+          }}
+          aria-label="Modal backdrop"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
+        >
           <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-white">Create New User</h3>
