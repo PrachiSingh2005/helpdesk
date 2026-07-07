@@ -179,6 +179,11 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(data),
       }),
+    update: (id: string, data: { name: string; email: string; password?: string }) =>
+      request<{ user: EndUser }>(`/api/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
     delete: (email: string) => request<{ message: string }>(`/api/users/${email}`, { method: 'DELETE' }),
   },
   dashboard: {

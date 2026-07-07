@@ -2,8 +2,10 @@ import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreateUserForm } from '../components/CreateUserForm';
 import { UsersTable } from '../components/UsersTable';
-import type { CreateUserSchemaType } from 'core';
-import { api } from '../utils/api';
+import type { UpdateUserSchemaType } from 'core';
+import { api, type EndUser } from '../utils/api';
+
+type DialogState = null | 'create' | EndUser;
 
 export const Users: React.FC = () => {
   const queryClient = useQueryClient();
@@ -14,11 +16,14 @@ export const Users: React.FC = () => {
 
   const users = data?.users || [];
 
-  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [activeDialog, setActiveDialog] = React.useState<DialogState>(null);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
 
+  const isModalOpen = activeDialog !== null;
+  const selectedUser = activeDialog && typeof activeDialog === 'object' ? activeDialog : undefined;
+
   const handleCloseModal = () => {
-    setIsModalOpen(false);
+    setActiveDialog(null);
     setSubmitError(null);
   };
 
@@ -37,14 +42,18 @@ export const Users: React.FC = () => {
     };
   }, [isModalOpen]);
 
-  const onSubmit = async (formData: CreateUserSchemaType) => {
+  const onSubmit = async (formData: UpdateUserSchemaType) => {
     setSubmitError(null);
     try {
-      await api.users.create(formData);
+      if (selectedUser) {
+        await api.users.update(selectedUser.id, formData);
+      } else {
+        await api.users.create(formData as any);
+      }
       await queryClient.invalidateQueries({ queryKey: ['users'] });
       handleCloseModal();
     } catch (err: any) {
-      setSubmitError(err.message || 'Failed to create user. Please try again.');
+      setSubmitError(err.message || 'Failed to submit form. Please try again.');
     }
   };
 
@@ -58,7 +67,9 @@ export const Users: React.FC = () => {
           Users
         </h2>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setActiveDialog('create');
+          }}
           className="px-4 py-2 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-sm font-semibold rounded-xl transition-all shadow-lg hover:shadow-violet-600/25 active:scale-[0.98]"
         >
           Create User
@@ -72,9 +83,15 @@ export const Users: React.FC = () => {
       )}
 
       {/* Users Table Component */}
-      <UsersTable users={users} isLoading={isLoading} />
+      <UsersTable
+        users={users}
+        isLoading={isLoading}
+        onEdit={(user) => {
+          setActiveDialog(user);
+        }}
+      />
 
-      {/* Create User Modal */}
+      {/* Create / Edit User Modal */}
       {isModalOpen && (
         <div
           onClick={(e) => {
@@ -87,7 +104,9 @@ export const Users: React.FC = () => {
         >
           <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white">Create New User</h3>
+              <h3 className="text-lg font-bold text-white">
+                {selectedUser ? 'Edit User' : 'Create New User'}
+              </h3>
               <button
                 onClick={handleCloseModal}
                 className="text-slate-400 hover:text-white transition-colors"
@@ -103,7 +122,11 @@ export const Users: React.FC = () => {
               </div>
             )}
 
-            <CreateUserForm onSubmit={onSubmit} onCancel={handleCloseModal} />
+            <CreateUserForm
+              onSubmit={onSubmit}
+              onCancel={handleCloseModal}
+              initialData={selectedUser}
+            />
           </div>
         </div>
       )}

@@ -81,4 +81,68 @@ describe('CreateUserForm Component', () => {
       });
     });
   });
+
+  it('pre-populates values and validates successfully with empty password when editing', async () => {
+    const existingUser = {
+      id: '123',
+      name: 'Existing Agent',
+      email: 'existing@example.com',
+      role: 'AGENT' as const,
+      createdAt: '2026-07-06T15:00:00.000Z',
+    };
+
+    render(
+      <CreateUserForm
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+        initialData={existingUser}
+      />
+    );
+
+    expect(screen.getByLabelText('Name')).toHaveValue('Existing Agent');
+    expect(screen.getByLabelText('Email')).toHaveValue('existing@example.com');
+    expect(screen.getByLabelText('Password')).toHaveValue('');
+
+    // Submit form with empty password
+    const form = screen.getByRole('form', { name: 'Create User Form' });
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(mockOnSubmit.mock.calls[0][0]).toEqual({
+        name: 'Existing Agent',
+        email: 'existing@example.com',
+        password: '',
+      });
+    });
+  });
+
+  it('validates password length if password is provided when editing', async () => {
+    const existingUser = {
+      id: '123',
+      name: 'Existing Agent',
+      email: 'existing@example.com',
+      role: 'AGENT' as const,
+      createdAt: '2026-07-06T15:00:00.000Z',
+    };
+
+    render(
+      <CreateUserForm
+        onSubmit={mockOnSubmit}
+        onCancel={mockOnCancel}
+        initialData={existingUser}
+      />
+    );
+
+    // Change password to a short one
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: '123' } });
+
+    const form = screen.getByRole('form', { name: 'Create User Form' });
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      expect(screen.getByText('Password must be at least 8 characters.')).toBeInTheDocument();
+    });
+
+    expect(mockOnSubmit).not.toHaveBeenCalled();
+  });
 });

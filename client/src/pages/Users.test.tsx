@@ -11,6 +11,7 @@ vi.mock('../utils/api', () => ({
     users: {
       list: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -300,6 +301,68 @@ describe('Users Component', () => {
 
       // Modal should remain open
       expect(screen.getByText('Create New User')).toBeInTheDocument();
+    });
+
+    it('pre-populates form, calls api.users.update on submit, and closes the modal when editing', async () => {
+      const mockUsers = [
+        {
+          id: 'agent-1',
+          name: 'John Doe',
+          email: 'john@example.com',
+          role: 'AGENT' as const,
+          createdAt: '2026-07-06T15:00:00.000Z',
+        },
+      ];
+
+      vi.mocked(api.users.list).mockResolvedValue({ users: mockUsers });
+      vi.mocked(api.users.update).mockResolvedValue({
+        user: {
+          id: 'agent-1',
+          name: 'John Doe Updated',
+          email: 'john-updated@example.com',
+          role: 'AGENT' as const,
+          createdAt: '2026-07-06T15:00:00.000Z',
+        },
+      });
+
+      renderWithClient(<Users />);
+
+      // Wait for user row to render in table
+      await waitFor(() => {
+        expect(screen.getByText('john@example.com')).toBeInTheDocument();
+      });
+
+      // Click Edit button on the user row
+      const editButton = screen.getByRole('button', { name: 'Edit John Doe' });
+      fireEvent.click(editButton);
+
+      // Verify modal is open as "Edit User" and fields are pre-populated
+      expect(screen.getByText('Edit User')).toBeInTheDocument();
+      expect(screen.getByLabelText('Name')).toHaveValue('John Doe');
+      expect(screen.getByLabelText('Email')).toHaveValue('john@example.com');
+      expect(screen.getByLabelText('Password')).toHaveValue('');
+
+      // Modify name and email
+      fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'John Doe Updated' } });
+      fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'john-updated@example.com' } });
+
+      // Submit form
+      const form = screen.getByRole('form', { name: 'Create User Form' });
+      fireEvent.submit(form);
+
+      // Verify api.users.update is called with correct arguments
+      await waitFor(() => {
+        expect(api.users.update).toHaveBeenCalledWith('agent-1', {
+          name: 'John Doe Updated',
+          email: 'john-updated@example.com',
+          password: '',
+        });
+      });
+
+      // Verify modal is closed
+      await waitFor(() => {
+        expect(screen.queryByText('Edit User')).not.toBeInTheDocument();
+      });
     });
   });
 });

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { Role } from '@prisma/client';
-import { createUserSchema } from 'core';
+import { createUserSchema, updateUserSchema } from 'core';
 import { prisma } from '../db';
 import { requireRole } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
@@ -84,5 +84,58 @@ router.post(
   })
 );
 
-export default router;
+// PUT /api/users/:id - Update an existing user (only email/password updateable on database, name generated dynamically)
+router.put(
+  '/:id',
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const userToUpdate = await prisma.user.findUnique({ where: { id } });
+    if (!userToUpdate) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
 
+    const validationResult = updateUserSchema.safeParse(req.body);
+    if (!validationResult.success) {
+      const firstError = validationResult.error.issues[0]?.message || 'Invalid input data.';
+      return res.status(400).json({ error: firstError });
+    }
+
+    const { name, email, password } = validationResult.data;
+
+    // Check if email is updated and is already in use by another user
+    if (email !== userToUpdate.email) {
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        return res.status(400).json({ error: 'Email is already in use.' });
+      }
+    }
+
+    const updateData: any = {
+      email,
+    };
+
+    if (password && password.trim() !== '') {
+      updateData.passwordHash = await bcrypt.hash(password, 10);
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        createdAt: true,
+      },
+    });
+
+    return res.json({
+      user: {
+        ...updatedUser,
+        name,
+      },
+    });
+  })
+);
+
+export default router;

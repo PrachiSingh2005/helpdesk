@@ -1,24 +1,28 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createUserSchema } from 'core';
-import type { CreateUserSchemaType } from 'core';
+import { createUserSchema, updateUserSchema } from 'core';
+import type { UpdateUserSchemaType } from 'core';
+
+// Re-export EndUser from utils/api since core type is mapping
+import type { EndUser as ApiEndUser } from '../utils/api';
 
 interface CreateUserFormProps {
-  onSubmit: (data: CreateUserSchemaType) => Promise<void>;
+  onSubmit: (data: UpdateUserSchemaType) => Promise<void>;
   onCancel: () => void;
+  initialData?: ApiEndUser;
 }
 
-export const CreateUserForm: React.FC<CreateUserFormProps> = ({ onSubmit, onCancel }) => {
+export const CreateUserForm: React.FC<CreateUserFormProps> = ({ onSubmit, onCancel, initialData }) => {
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<CreateUserSchemaType>({
-    resolver: zodResolver(createUserSchema),
+  } = useForm<UpdateUserSchemaType>({
+    resolver: zodResolver(initialData ? updateUserSchema : createUserSchema),
     defaultValues: {
-      name: '',
-      email: '',
+      name: initialData?.name || '',
+      email: initialData?.email || '',
       password: '',
     },
   });
@@ -75,7 +79,7 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({ onSubmit, onCanc
           className={`w-full h-10 px-3 bg-slate-950 border ${
             errors.password ? 'border-destructive focus:ring-destructive/25' : 'border-slate-800 focus:ring-violet-500/25'
           } rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 transition-all`}
-          placeholder="Enter password"
+          placeholder={initialData ? "Leave blank to keep current password" : "Enter password"}
         />
         {errors.password && (
           <p className="text-xs text-red-400">{errors.password.message}</p>
@@ -93,10 +97,12 @@ export const CreateUserForm: React.FC<CreateUserFormProps> = ({ onSubmit, onCanc
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white rounded-xl font-semibold transition-all flex items-center justify-center"
+          className="px-4 py-2 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white rounded-xl font-semibold transition-all flex items-center justify-center animate-pulse-once"
           disabled={isSubmitting}
         >
-          {isSubmitting ? 'Creating...' : 'Create User'}
+          {isSubmitting
+            ? (initialData ? 'Saving...' : 'Creating...')
+            : (initialData ? 'Save Changes' : 'Create User')}
         </button>
       </div>
     </form>
