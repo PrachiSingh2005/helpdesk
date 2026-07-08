@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Ticket, BookOpen, Users, LogOut, ShieldAlert, UserCog } from 'lucide-react';
+import { LayoutDashboard, Ticket, BookOpen, Users, LogOut, ShieldAlert, UserCog, Mail } from 'lucide-react';
 import { Role } from '../utils/api';
 
 export const DashboardLayout: React.FC = () => {
@@ -22,6 +22,7 @@ export const DashboardLayout: React.FC = () => {
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Ticket Queue', path: '/dashboard/tickets', icon: Ticket },
     { label: 'Knowledge Base', path: '/dashboard/kb', icon: BookOpen },
+    { label: 'Email Simulator', path: '/dashboard/email-simulator', icon: Mail },
   ];
 
   // Restrict agent view access to ADMIN-only pages
@@ -100,6 +101,8 @@ export const DashboardLayout: React.FC = () => {
                 ? 'Knowledge Base Editor'
                 : location.pathname.startsWith('/dashboard/agents')
                 ? 'Agent Operations'
+                : location.pathname.startsWith('/dashboard/email-simulator')
+                ? 'Inbound Email Simulator'
                 : location.pathname.startsWith('/users')
                 ? 'Users'
                 : 'Support Dashboard'}

@@ -93,13 +93,16 @@ export const TicketDetail: React.FC = () => {
       <div className="flex-1 flex flex-col min-w-0 h-full bg-slate-900/10 rounded-2xl border border-slate-800/80 overflow-hidden">
         {/* Thread Header bar */}
         <div className="p-4 bg-slate-900/40 border-b border-slate-800/80 flex items-center justify-between">
-          <button
-            onClick={() => navigate('/dashboard/tickets')}
-            className="flex items-center gap-2 text-slate-400 hover:text-slate-200 text-sm font-semibold cursor-pointer border border-transparent hover:border-slate-800 hover:bg-slate-900 px-3 py-1.5 rounded-xl transition-all"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Queue
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/dashboard/tickets')}
+              className="flex items-center gap-2 text-slate-400 hover:text-slate-200 text-sm font-semibold cursor-pointer border border-transparent hover:border-slate-800 hover:bg-slate-900 px-3 py-1.5 rounded-xl transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Queue
+            </button>
+            <h2 className="text-md font-bold text-white tracking-wide">{ticket.subject}</h2>
+          </div>
           <div className="text-right">
             <span className="text-xs text-slate-400 font-bold">Ticket # {ticket.ticketNumber}</span>
           </div>

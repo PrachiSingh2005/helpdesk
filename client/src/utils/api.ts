@@ -189,4 +189,11 @@ export const api = {
   dashboard: {
     stats: () => request<DashboardStats>('/api/dashboard/stats'),
   },
+  emails: {
+    inbound: (data: { from: string; subject: string; text: string; headers?: string }) =>
+      request<{ success: boolean; ticketId: string }>('/api/emails/inbound', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+  },
 };

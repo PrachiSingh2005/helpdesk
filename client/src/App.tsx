@@ -9,6 +9,7 @@ import { TicketDetail } from './pages/TicketDetail';
 import { KBManager } from './pages/KBManager';
 import { AgentManager } from './pages/AgentManager';
 import { Users } from './pages/Users';
+import { EmailSimulator } from './pages/EmailSimulator';
 import { Loader2 } from 'lucide-react';
 import { Role } from './utils/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -71,6 +72,7 @@ export default function App() {
                 <Route path="tickets" element={<TicketsList />} />
                 <Route path="tickets/:id" element={<TicketDetail />} />
                 <Route path="kb" element={<KBManager />} />
+                <Route path="email-simulator" element={<EmailSimulator />} />
                 {/* Admin only subroute */}
                 <Route path="agents" element={<ProtectedRoute allowedRoles={[Role.ADMIN]} />}>
                   <Route index element={<AgentManager />} />
