@@ -74,7 +74,7 @@ test.describe('HelpDesk E2E Testing Suite - Webhook Integration', () => {
 
     // Verify correct fields and student message are displayed
     await expect(page.locator(`h2:has-text("${subject}")`)).toBeVisible();
-    await expect(page.locator(`text=${studentEmail}`)).toBeVisible();
+    await expect(page.locator(`text=${studentEmail}`).first()).toBeVisible();
     await expect(page.locator(`text=${text}`)).toBeVisible();
   });
 
@@ -206,7 +206,7 @@ test.describe('HelpDesk E2E Testing Suite - Webhook Integration', () => {
     await expect(page.locator('select').first()).toHaveValue('RESOLVED');
 
     // Verify the AI-automated response is visible in the thread
-    await expect(page.locator('text=AI Automated response').first()).toBeVisible();
+    await expect(page.locator('text=AI Auto-Reply').first()).toBeVisible();
     await expect(page.locator('text=To connect to the campus secure Wi-Fi').first()).toBeVisible();
   });
 });

@@ -175,3 +175,24 @@ The **Context7 MCP** server is registered with the Antigravity IDE configuration
 ### How to use Context7 tools:
 1. **Resolve Library ID**: Query `resolve-library-id` with `libraryName` (e.g. `react` or `prisma`) and `query` to obtain the Context7 library reference ID (e.g. `/reactjs/react.dev` or `/prisma/web`).
 2. **Fetch Documentation**: Call `query-docs` with the resolved `libraryId` and the specific question/topic to retrieve raw reference markdown sections and code blocks.
+
+---
+
+## 🧪 Testing Strategy & Guidelines
+
+We maintain a strict separation between Unit Tests and End-to-End (E2E) Tests:
+
+### 1. Unit Tests
+- **Purpose**: Test component rendering, layout structures, user events/actions (mocked callbacks), form validations, and internal state logic in isolation.
+- **Tools**: Vitest + React Testing Library.
+- **Coverage**: All functional elements of individual pages and components (like `TicketDetails` and `ReplyThread`) must be unit tested.
+
+### 2. End-to-End (E2E) Tests
+- **Purpose**: Test integration between client, API router, databases, webhooks, and third-party mocks (RAG/SMTP/AI).
+- **Tools**: Playwright.
+- **Constraint**: **Do not duplicate checks** already covered by unit tests (such as default option values, static text presence, or layout visibility). E2E tests should strictly verify flows that require database persistence, network integrations, and multi-page user interactions (e.g., webhook ingestion routing to database, manual replies saving to database, attribute mutations persisting across page reloads).
+- **Execution**: To run E2E tests locally without database race conditions, run Playwright with a single worker:
+  ```bash
+  npm run test:e2e -- --workers=1
+  ```
+

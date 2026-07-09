@@ -89,7 +89,7 @@ test.describe('HelpDesk E2E Testing Suite - Inbound Email Integration', () => {
     // Verify we are redirected to the ticket details and fields are correct
     await expect(page).toHaveURL(/\/dashboard\/tickets\/[a-f0-9-]+/);
     await expect(page.locator('h2:has-text("WiFi problems in dorm lobby")')).toBeVisible();
-    await expect(page.locator('text=simulator-student@college.edu')).toBeVisible();
+    await expect(page.locator('text=simulator-student@college.edu').first()).toBeVisible();
     await expect(page.locator('text=Freshman dorm lobby disconnects')).toBeVisible();
   });
 

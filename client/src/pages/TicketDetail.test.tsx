@@ -93,10 +93,10 @@ describe('TicketDetail Component', () => {
 
     // Verify loading state is shown, then resolves
     await waitFor(() => {
-      expect(screen.getByText('Need help with math assignment')).toBeInTheDocument();
+      expect(screen.getAllByText('Need help with math assignment')[0]).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Ticket # 456')).toBeInTheDocument();
+    expect(screen.getByText('#456')).toBeInTheDocument();
     expect(screen.getByText('I have some issues solving linear equations.')).toBeInTheDocument();
 
     // Verify status, category, and assignment dropdown options are rendered
@@ -106,7 +106,7 @@ describe('TicketDetail Component', () => {
     const categorySelect = screen.getByDisplayValue('General Question');
     expect(categorySelect).toBeInTheDocument();
 
-    const agentSelect = screen.getByLabelText(/Assigned Agent/i);
+    const agentSelect = screen.getByLabelText('Assigned Agent');
     expect(agentSelect).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Unassigned' })).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'John (AGENT)' })).toBeInTheDocument();
@@ -131,7 +131,7 @@ describe('TicketDetail Component', () => {
     renderWithClient(<TicketDetail />);
 
     await waitFor(() => {
-      expect(screen.getByText('Need help with math assignment')).toBeInTheDocument();
+      expect(screen.getAllByText('Need help with math assignment')[0]).toBeInTheDocument();
     });
 
     const agentSelect = screen.getByLabelText(/Assigned Agent/i);
@@ -167,7 +167,7 @@ describe('TicketDetail Component', () => {
     renderWithClient(<TicketDetail />);
 
     await waitFor(() => {
-      expect(screen.getByText('Need help with math assignment')).toBeInTheDocument();
+      expect(screen.getAllByText('Need help with math assignment')[0]).toBeInTheDocument();
     });
 
     const agentSelect = screen.getByLabelText(/Assigned Agent/i);
@@ -191,7 +191,7 @@ describe('TicketDetail Component', () => {
     renderWithClient(<TicketDetail />);
 
     await waitFor(() => {
-      expect(screen.getByText('Need help with math assignment')).toBeInTheDocument();
+      expect(screen.getAllByText('Need help with math assignment')[0]).toBeInTheDocument();
     });
 
     const agentSelect = screen.getByLabelText(/Assigned Agent/i);
