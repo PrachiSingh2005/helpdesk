@@ -98,6 +98,8 @@ describe('TicketsList Component', () => {
         search: '',
         sortBy: 'createdAt',
         sortOrder: 'desc',
+        page: 1,
+        limit: 10,
       });
     });
 
@@ -158,6 +160,8 @@ describe('TicketsList Component', () => {
         search: '',
         sortBy: 'createdAt',
         sortOrder: 'desc',
+        page: 1,
+        limit: 10,
       });
     });
   });
@@ -184,6 +188,8 @@ describe('TicketsList Component', () => {
         search: '',
         sortBy: 'createdAt',
         sortOrder: 'desc',
+        page: 1,
+        limit: 10,
       });
     });
   });
@@ -210,6 +216,8 @@ describe('TicketsList Component', () => {
         search: '',
         sortBy: 'createdAt',
         sortOrder: 'asc',
+        page: 1,
+        limit: 10,
       });
     });
   });
@@ -240,6 +248,8 @@ describe('TicketsList Component', () => {
         search: 'campus',
         sortBy: 'createdAt',
         sortOrder: 'desc',
+        page: 1,
+        limit: 10,
       });
     });
   });
@@ -286,6 +296,8 @@ describe('TicketsList Component', () => {
         search: '',
         sortBy: 'ticketNumber',
         sortOrder: 'desc',
+        page: 1,
+        limit: 10,
       });
     });
 
@@ -300,6 +312,8 @@ describe('TicketsList Component', () => {
         search: '',
         sortBy: 'ticketNumber',
         sortOrder: 'asc',
+        page: 1,
+        limit: 10,
       });
     });
   });
@@ -324,6 +338,8 @@ describe('TicketsList Component', () => {
         search: '',
         sortBy: 'studentEmail',
         sortOrder: 'asc',
+        page: 1,
+        limit: 10,
       });
     });
   });
@@ -348,6 +364,8 @@ describe('TicketsList Component', () => {
         search: '',
         sortBy: 'status',
         sortOrder: 'asc',
+        page: 1,
+        limit: 10,
       });
     });
   });
@@ -372,6 +390,8 @@ describe('TicketsList Component', () => {
         search: '',
         sortBy: 'aiConfidence',
         sortOrder: 'desc',
+        page: 1,
+        limit: 10,
       });
     });
   });
@@ -401,6 +421,8 @@ describe('TicketsList Component', () => {
         sortBy: 'createdAt',
         sortOrder: 'desc',
         studentEmail: 'alice',
+        page: 1,
+        limit: 10,
       });
     });
   });
@@ -430,6 +452,8 @@ describe('TicketsList Component', () => {
         sortBy: 'createdAt',
         sortOrder: 'desc',
         maxConfidence: '0.85',
+        page: 1,
+        limit: 10,
       });
     });
   });
@@ -459,6 +483,8 @@ describe('TicketsList Component', () => {
         sortBy: 'createdAt',
         sortOrder: 'desc',
         dateRange: 'week',
+        page: 1,
+        limit: 10,
       });
     });
   });
@@ -487,6 +513,8 @@ describe('TicketsList Component', () => {
         sortBy: 'createdAt',
         sortOrder: 'desc',
         maxConfidence: '0.85',
+        page: 1,
+        limit: 10,
       });
     });
 
@@ -501,6 +529,76 @@ describe('TicketsList Component', () => {
         search: '',
         sortBy: 'createdAt',
         sortOrder: 'desc',
+        page: 1,
+        limit: 10,
+      });
+    });
+  });
+
+  it('refetches tickets when page changes via next/previous buttons', async () => {
+    vi.mocked(api.tickets.list).mockResolvedValue({
+      tickets: mockTickets,
+      total: 25,
+      page: 1,
+      limit: 10,
+      totalPages: 3,
+    });
+
+    renderWithClient(<TicketsList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('#101')).toBeInTheDocument();
+    });
+
+    // Verify pagination indicator shows "Page 1 of 3"
+    expect(screen.getByText((_content, element) => element?.textContent === 'Page 1 of 3')).toBeInTheDocument();
+
+    // Click "Next" button
+    const nextButton = screen.getByRole('button', { name: /Next/i });
+    fireEvent.click(nextButton);
+
+    await waitFor(() => {
+      expect(api.tickets.list).toHaveBeenLastCalledWith({
+        status: '',
+        category: '',
+        search: '',
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+        page: 2,
+        limit: 10,
+      });
+    });
+  });
+
+  it('refetches tickets when limit changes via page size dropdown', async () => {
+    vi.mocked(api.tickets.list).mockResolvedValue({
+      tickets: mockTickets,
+      total: 25,
+      page: 1,
+      limit: 10,
+      totalPages: 3,
+    });
+
+    renderWithClient(<TicketsList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('#101')).toBeInTheDocument();
+    });
+
+    // Change limit select to 20
+    const limitSelects = screen.getAllByRole('combobox');
+    const sizeSelect = limitSelects[limitSelects.length - 1]; // the last select is the page size select
+    fireEvent.change(sizeSelect, { target: { value: '20' } });
+
+    await waitFor(() => {
+      expect(api.tickets.list).toHaveBeenLastCalledWith({
+        status: '',
+        category: '',
+        search: '',
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+        page: 1,
+        limit: 20,
       });
     });
   });

@@ -10,7 +10,7 @@ const router = Router();
 router.use(requireAuth);
 // Get tickets with sorting, search, and filtering
 router.get('/', asyncHandler(async (req, res) => {
-    const { status, category, search, sortBy, sortOrder, studentEmail, minConfidence, maxConfidence, dateRange } = req.query;
+    const { status, category, search, sortBy, sortOrder, studentEmail, minConfidence, maxConfidence, dateRange, page, limit } = req.query;
     const whereClause = {};
     if (status && Object.values(TicketStatus).includes(status)) {
         whereClause.status = status;
@@ -87,17 +87,32 @@ router.get('/', asyncHandler(async (req, res) => {
             orderByClause = { [sortBy]: order };
         }
     }
-    const tickets = await prisma.ticket.findMany({
-        where: whereClause,
-        include: {
-            messages: {
-                orderBy: { createdAt: 'desc' },
-                take: 1, // Preview the latest message in lists
+    const parsedPage = parseInt(page || '1', 10);
+    const parsedLimit = parseInt(limit || '10', 10);
+    const skip = (parsedPage - 1) * parsedLimit;
+    const [tickets, total] = await Promise.all([
+        prisma.ticket.findMany({
+            where: whereClause,
+            include: {
+                messages: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1, // Preview the latest message in lists
+                },
             },
-        },
-        orderBy: orderByClause,
+            orderBy: orderByClause,
+            skip,
+            take: parsedLimit,
+        }),
+        prisma.ticket.count({ where: whereClause }),
+    ]);
+    const totalPages = Math.ceil(total / parsedLimit);
+    return res.json({
+        tickets,
+        total,
+        page: parsedPage,
+        limit: parsedLimit,
+        totalPages,
     });
-    return res.json({ tickets });
 }));
 // Get detailed ticket structure and complete thread message logs
 router.get('/:id', asyncHandler(async (req, res) => {

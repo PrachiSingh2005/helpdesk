@@ -126,6 +126,8 @@ export const api = {
       minConfidence?: string;
       maxConfidence?: string;
       dateRange?: string;
+      page?: number;
+      limit?: number;
     } = {}) => {
       const query = new URLSearchParams();
       if (params.status) {
@@ -155,7 +157,19 @@ export const api = {
       if (params.dateRange) {
         query.append('dateRange', params.dateRange);
       }
-      return request<{ tickets: Ticket[] }>(`/api/tickets?${query.toString()}`);
+      if (params.page !== undefined) {
+        query.append('page', params.page.toString());
+      }
+      if (params.limit !== undefined) {
+        query.append('limit', params.limit.toString());
+      }
+      return request<{ 
+        tickets: Ticket[]; 
+        total?: number; 
+        page?: number; 
+        limit?: number; 
+        totalPages?: number; 
+      }>(`/api/tickets?${query.toString()}`);
     },
     get: (id: string) => request<{ ticket: Ticket }>(`/api/tickets/${id}`),
     update: (id: string, updates: { status?: string; category?: string }) =>

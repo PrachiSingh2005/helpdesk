@@ -18,6 +18,12 @@ export const TicketsList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
   // Filters state
   const [status, setStatus] = useState('');
   const [category, setCategory] = useState('');
@@ -56,8 +62,12 @@ export const TicketsList: React.FC = () => {
         minConfidence: minConf,
         maxConfidence: maxConf,
         dateRange: dateRange !== 'all' ? dateRange : undefined,
+        page,
+        limit,
       });
-      setTickets(data.tickets);
+      setTickets(data.tickets || []);
+      setTotal(data.total ?? data.tickets?.length ?? 0);
+      setTotalPages(data.totalPages ?? 1);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch tickets list.');
     } finally {
@@ -67,10 +77,11 @@ export const TicketsList: React.FC = () => {
 
   useEffect(() => {
     fetchTickets();
-  }, [status, category, sorting, studentEmail, confidenceFilter, dateRange]); // Automatically refresh on status, category, sort or filter changes
+  }, [status, category, sorting, studentEmail, confidenceFilter, dateRange, page, limit]); // Automatically refresh on status, category, sort, filter, or page changes
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setPage(1);
     fetchTickets();
   };
 
@@ -82,6 +93,7 @@ export const TicketsList: React.FC = () => {
     setConfidenceFilter('all');
     setDateRange('all');
     setSorting([{ id: 'createdAt', desc: true }]);
+    setPage(1);
   };
 
   const getStatusBadge = (ticketStatus: string) => {
@@ -136,6 +148,7 @@ export const TicketsList: React.FC = () => {
 
   // Sync preset dropdown with TanStack table sorting state
   const handleDropdownSortChange = (value: string) => {
+    setPage(1);
     if (value === 'newest') {
       setSorting([{ id: 'createdAt', desc: true }]);
     } else if (value === 'oldest') {
@@ -271,10 +284,19 @@ export const TicketsList: React.FC = () => {
     columns,
     state: {
       sorting,
+      pagination: {
+        pageIndex: page - 1,
+        pageSize: limit,
+      },
     },
-    onSortingChange: setSorting,
+    onSortingChange: (updater) => {
+      setSorting(updater);
+      setPage(1);
+    },
     getCoreRowModel: getCoreRowModel(),
     manualSorting: true, // Server-side sorting
+    manualPagination: true, // Server-side pagination
+    pageCount: totalPages,
   });
 
   const dropdownVal = getDropdownValue();
@@ -290,7 +312,10 @@ export const TicketsList: React.FC = () => {
             type="text"
             placeholder="Search tickets, emails, message text..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
             className="w-full bg-slate-900/50 border border-slate-700/50 rounded-xl pl-11 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-all"
           />
           <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-500" />
@@ -304,7 +329,10 @@ export const TicketsList: React.FC = () => {
             <SlidersHorizontal className="w-4 h-4 text-slate-400" />
             <select
               value={status}
-              onChange={(e) => setStatus(e.target.value)}
+              onChange={(e) => {
+                setStatus(e.target.value);
+                setPage(1);
+              }}
               className="bg-transparent text-xs text-slate-300 focus:outline-none font-semibold pr-2 cursor-pointer"
             >
               <option value="" className="bg-slate-900 text-white">All Statuses</option>
@@ -319,7 +347,10 @@ export const TicketsList: React.FC = () => {
             <SlidersHorizontal className="w-4 h-4 text-slate-400" />
             <select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={(e) => {
+                setCategory(e.target.value);
+                setPage(1);
+              }}
               className="bg-transparent text-xs text-slate-300 focus:outline-none font-semibold pr-2 cursor-pointer"
             >
               <option value="" className="bg-slate-900 text-white">All Categories</option>
@@ -385,7 +416,10 @@ export const TicketsList: React.FC = () => {
               type="text"
               placeholder="Filter by email address..."
               value={studentEmail}
-              onChange={(e) => setStudentEmail(e.target.value)}
+              onChange={(e) => {
+                setStudentEmail(e.target.value);
+                setPage(1);
+              }}
               className="bg-slate-900/50 border border-slate-700/50 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-all"
             />
           </div>
@@ -398,7 +432,10 @@ export const TicketsList: React.FC = () => {
             <select
               id="filter-ai-confidence"
               value={confidenceFilter}
-              onChange={(e) => setConfidenceFilter(e.target.value)}
+              onChange={(e) => {
+                setConfidenceFilter(e.target.value);
+                setPage(1);
+              }}
               className="bg-slate-900/50 border border-slate-700/50 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none cursor-pointer focus:border-violet-500 transition-all font-semibold"
             >
               <option value="all" className="bg-slate-900 text-white">All Confidences</option>
@@ -415,7 +452,10 @@ export const TicketsList: React.FC = () => {
             <select
               id="filter-date-range"
               value={dateRange}
-              onChange={(e) => setDateRange(e.target.value)}
+              onChange={(e) => {
+                setDateRange(e.target.value);
+                setPage(1);
+              }}
               className="bg-slate-900/50 border border-slate-700/50 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none cursor-pointer focus:border-violet-500 transition-all font-semibold"
             >
               <option value="all" className="bg-slate-900 text-white">All Time</option>
@@ -426,7 +466,7 @@ export const TicketsList: React.FC = () => {
           </div>
 
           {/* Clear Filters Button */}
-          {((status || category || search || hasActiveAdvancedFilters) || sorting.length > 0 && (sorting[0].id !== 'createdAt' || !sorting[0].desc)) && (
+          {((status || category || search || hasActiveAdvancedFilters) || sorting.length > 0 && (sorting[0].id !== 'createdAt' || !sorting[0].desc) || page !== 1) && (
             <div className="md:col-span-3 flex justify-end">
               <button
                 onClick={handleClearFilters}
@@ -534,6 +574,60 @@ export const TicketsList: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="bg-slate-900/40 border-t border-slate-800/80 p-4 px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Item range indicator */}
+            <div className="text-xs text-slate-400 font-medium">
+              Showing <span className="font-bold text-white">{Math.min(total, (page - 1) * limit + 1)}</span> to{' '}
+              <span className="font-bold text-white">{Math.min(total, page * limit)}</span> of{' '}
+              <span className="font-bold text-white">{total}</span> tickets
+            </div>
+
+            {/* Action buttons and page size select */}
+            <div className="flex items-center gap-4">
+              {/* Page Size select */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-medium">Show</span>
+                <select
+                  value={limit}
+                  onChange={(e) => {
+                    setLimit(parseInt(e.target.value, 10));
+                    setPage(1);
+                  }}
+                  className="bg-slate-950 border border-slate-800 px-2 py-1 rounded-lg text-xs font-bold text-slate-300 focus:outline-none cursor-pointer focus:border-violet-500"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+
+              {/* Navigation buttons */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                  disabled={page === 1}
+                  className="px-3 py-1.5 bg-slate-900/50 hover:bg-slate-800/80 border border-slate-700/50 rounded-lg text-xs font-semibold text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all active:scale-95"
+                >
+                  Previous
+                </button>
+                
+                <span className="text-xs font-semibold text-slate-400 px-1">
+                  Page <span className="text-white font-bold">{page}</span> of{' '}
+                  <span className="text-white font-bold">{totalPages}</span>
+                </span>
+
+                <button
+                  onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={page === totalPages || totalPages === 0}
+                  className="px-3 py-1.5 bg-slate-900/50 hover:bg-slate-800/80 border border-slate-700/50 rounded-lg text-xs font-semibold text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-all active:scale-95"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
