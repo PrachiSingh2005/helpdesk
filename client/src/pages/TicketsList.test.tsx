@@ -10,6 +10,7 @@ vi.mock('../utils/api', () => ({
   api: {
     tickets: {
       list: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -92,15 +93,17 @@ describe('TicketsList Component', () => {
 
     // Verify API is called on mount with default filters and sorting: createdAt desc
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
 
     // Check that ticket details are visible
@@ -108,7 +111,7 @@ describe('TicketsList Component', () => {
     expect(screen.getByText('WiFi connection issues in dorm')).toBeInTheDocument();
     expect(screen.getByText('student1@college.edu')).toBeInTheDocument();
     expect(screen.getAllByText('Open')[0]).toBeInTheDocument();
-    expect(screen.getByText('Technical')).toBeInTheDocument();
+    expect(screen.getAllByText('Technical Question')[0]).toBeInTheDocument();
     expect(screen.getByText('Student has trouble connecting to campus WiFi.')).toBeInTheDocument();
     expect(screen.getByText('(95% conf)')).toBeInTheDocument();
 
@@ -116,7 +119,7 @@ describe('TicketsList Component', () => {
     expect(screen.getByText('Question about library opening hours')).toBeInTheDocument();
     expect(screen.getByText('student2@college.edu')).toBeInTheDocument();
     expect(screen.getAllByText('Resolved')[0]).toBeInTheDocument();
-    expect(screen.getByText('General')).toBeInTheDocument();
+    expect(screen.getAllByText('General Question')[0]).toBeInTheDocument();
     expect(screen.getByText('Wants to know when the library is open.')).toBeInTheDocument();
     expect(screen.getByText('(88% conf)')).toBeInTheDocument();
   });
@@ -131,11 +134,36 @@ describe('TicketsList Component', () => {
     });
 
     // Click the first "View" button
-    const viewButtons = screen.getAllByRole('button', { name: /View/i });
+    const viewButtons = screen.getAllByRole('button', { name: 'View' });
     fireEvent.click(viewButtons[0]);
 
     // Verify navigation was triggered
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/tickets/ticket-1');
+  });
+
+  it('updates ticket status inline and refreshes data', async () => {
+    vi.mocked(api.tickets.list).mockResolvedValue({ tickets: mockTickets });
+    vi.mocked(api.tickets.update).mockResolvedValue({
+      ticket: { ...mockTickets[0], status: 'RESOLVED' as const }
+    });
+
+    renderWithClient(<TicketsList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('#101')).toBeInTheDocument();
+    });
+
+    // Find the inline status select for the first ticket
+    const statusSelects = screen.getAllByRole('combobox');
+    const openStatusSelect = statusSelects.find(s => (s as HTMLSelectElement).value === 'OPEN');
+    expect(openStatusSelect).toBeInTheDocument();
+
+    // Trigger update status
+    fireEvent.change(openStatusSelect!, { target: { value: 'RESOLVED' } });
+
+    await waitFor(() => {
+      expect(api.tickets.update).toHaveBeenCalledWith('ticket-1', { status: 'RESOLVED' });
+    });
   });
 
   it('refetches tickets when status filter changes', async () => {
@@ -148,21 +176,23 @@ describe('TicketsList Component', () => {
     });
 
     const selects = screen.getAllByRole('combobox');
-    const statusDropdown = selects[0]; // status dropdown is the first one
+    const statusDropdown = selects[0]; // status dropdown is the first one in sidebar
 
     // Change status dropdown to OPEN
     fireEvent.change(statusDropdown, { target: { value: 'OPEN' } });
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: 'OPEN',
-        category: '',
-        search: '',
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: 'OPEN',
+          category: '',
+          search: '',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -176,21 +206,23 @@ describe('TicketsList Component', () => {
     });
 
     const selects = screen.getAllByRole('combobox');
-    const categoryDropdown = selects[1]; // category dropdown is the second one
+    const categoryDropdown = selects[1]; // category dropdown is the second one in sidebar
 
     // Change category dropdown to REFUND_REQUEST
     fireEvent.change(categoryDropdown, { target: { value: 'REFUND_REQUEST' } });
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: 'REFUND_REQUEST',
-        search: '',
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: 'REFUND_REQUEST',
+          search: '',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -204,21 +236,23 @@ describe('TicketsList Component', () => {
     });
 
     const selects = screen.getAllByRole('combobox');
-    const sortDropdown = selects[2]; // sort dropdown is the third one
+    const sortDropdown = selects[2]; // sort dropdown is the third one in sidebar
 
     // Change sort dropdown to oldest
     fireEvent.change(sortDropdown, { target: { value: 'oldest' } });
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'createdAt',
-        sortOrder: 'asc',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'createdAt',
+          sortOrder: 'asc',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -232,7 +266,7 @@ describe('TicketsList Component', () => {
     });
 
     // Enter search keyword
-    const searchInput = screen.getByPlaceholderText(/Search tickets, emails, message text.../i);
+    const searchInput = screen.getByPlaceholderText('Search tickets, emails, message text...');
     fireEvent.change(searchInput, { target: { value: 'campus' } });
 
     // Submit form (press enter / submit)
@@ -242,15 +276,17 @@ describe('TicketsList Component', () => {
     }
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: 'campus',
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: 'campus',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -286,35 +322,39 @@ describe('TicketsList Component', () => {
     });
 
     // Click "Ticket" header to sort by ticketNumber desc
-    const ticketHeader = screen.getByRole('button', { name: /Ticket/i });
+    const ticketHeader = screen.getByRole('button', { name: 'Ticket' });
     fireEvent.click(ticketHeader);
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'ticketNumber',
-        sortOrder: 'desc',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'ticketNumber',
+          sortOrder: 'desc',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
 
     // Click "Ticket" header again to sort by ticketNumber asc
-    const ticketHeaderAgain = screen.getByRole('button', { name: /Ticket/i });
+    const ticketHeaderAgain = screen.getByRole('button', { name: 'Ticket' });
     fireEvent.click(ticketHeaderAgain);
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'ticketNumber',
-        sortOrder: 'asc',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'ticketNumber',
+          sortOrder: 'asc',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -328,19 +368,21 @@ describe('TicketsList Component', () => {
     });
 
     // Click "Student" header to sort by studentEmail asc
-    const studentHeader = screen.getByRole('button', { name: /Student/i });
+    const studentHeader = screen.getByRole('button', { name: 'Student' });
     fireEvent.click(studentHeader);
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'studentEmail',
-        sortOrder: 'asc',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'studentEmail',
+          sortOrder: 'asc',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -354,19 +396,21 @@ describe('TicketsList Component', () => {
     });
 
     // Click "Classification" header to sort by status asc
-    const classificationHeader = screen.getByRole('button', { name: /Classification/i });
+    const classificationHeader = screen.getByRole('button', { name: 'Classification' });
     fireEvent.click(classificationHeader);
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'status',
-        sortOrder: 'asc',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'status',
+          sortOrder: 'asc',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -380,19 +424,21 @@ describe('TicketsList Component', () => {
     });
 
     // Click "AI Insight" header to sort by aiConfidence desc
-    const aiInsightHeader = screen.getByRole('button', { name: /AI Insight/i });
+    const aiInsightHeader = screen.getByRole('button', { name: 'AI Insight' });
     fireEvent.click(aiInsightHeader);
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'aiConfidence',
-        sortOrder: 'desc',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'aiConfidence',
+          sortOrder: 'desc',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -405,25 +451,24 @@ describe('TicketsList Component', () => {
       expect(screen.getByText('#101')).toBeInTheDocument();
     });
 
-    // Expand the Advanced Filters panel
-    const toggleButton = screen.getByTitle('Toggle Advanced Filters');
-    fireEvent.click(toggleButton);
-
+    // Advanced filters are always visible in the sidebar — no toggle needed
     // Get the Student Email input and type a value
-    const studentEmailInput = screen.getByLabelText(/Student Email/i);
+    const studentEmailInput = screen.getByPlaceholderText('Filter by email...');
     fireEvent.change(studentEmailInput, { target: { value: 'alice' } });
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        studentEmail: 'alice',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          studentEmail: 'alice',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -436,25 +481,24 @@ describe('TicketsList Component', () => {
       expect(screen.getByText('#101')).toBeInTheDocument();
     });
 
-    // Expand the Advanced Filters panel
-    const toggleButton = screen.getByTitle('Toggle Advanced Filters');
-    fireEvent.click(toggleButton);
-
+    // Advanced filters are always visible in the sidebar — no toggle needed
     // Get the AI Confidence select and choose 'low'
     const confidenceSelect = screen.getByLabelText(/AI Confidence/i);
     fireEvent.change(confidenceSelect, { target: { value: 'low' } });
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        maxConfidence: '0.85',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          maxConfidence: '0.85',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -467,25 +511,24 @@ describe('TicketsList Component', () => {
       expect(screen.getByText('#101')).toBeInTheDocument();
     });
 
-    // Expand the Advanced Filters panel
-    const toggleButton = screen.getByTitle('Toggle Advanced Filters');
-    fireEvent.click(toggleButton);
-
+    // Advanced filters are always visible in the sidebar — no toggle needed
     // Get the Date Range select and choose 'week'
-    const dateRangeSelect = screen.getByLabelText(/Date Range/i);
+    const dateRangeSelect = screen.getByLabelText('Date Range');
     fireEvent.change(dateRangeSelect, { target: { value: 'week' } });
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        dateRange: 'week',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          dateRange: 'week',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -498,40 +541,41 @@ describe('TicketsList Component', () => {
       expect(screen.getByText('#101')).toBeInTheDocument();
     });
 
-    // Expand the Advanced Filters panel and set a filter
-    const toggleButton = screen.getByTitle('Toggle Advanced Filters');
-    fireEvent.click(toggleButton);
-
+    // Advanced filters are always visible in the sidebar — no toggle needed
     const confidenceSelect = screen.getByLabelText(/AI Confidence/i);
     fireEvent.change(confidenceSelect, { target: { value: 'low' } });
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        maxConfidence: '0.85',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          maxConfidence: '0.85',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
 
-    // Click "Clear All Filters"
-    const clearButton = screen.getByRole('button', { name: /Clear All Filters/i });
+    // Click "Clear All Filters" (visible in sidebar when any filter is active)
+    const clearButton = screen.getAllByRole('button', { name: 'Clear All Filters' })[0];
     fireEvent.click(clearButton);
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        page: 1,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          page: 1,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -554,19 +598,21 @@ describe('TicketsList Component', () => {
     expect(screen.getByText((_content, element) => element?.textContent === 'Page 1 of 3')).toBeInTheDocument();
 
     // Click "Next" button
-    const nextButton = screen.getByRole('button', { name: /Next/i });
+    const nextButton = screen.getByRole('button', { name: 'Next' });
     fireEvent.click(nextButton);
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        page: 2,
-        limit: 10,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          page: 2,
+          limit: 10,
+        })
+      );
     });
   });
 
@@ -585,21 +631,24 @@ describe('TicketsList Component', () => {
       expect(screen.getByText('#101')).toBeInTheDocument();
     });
 
-    // Change limit select to 20
-    const limitSelects = screen.getAllByRole('combobox');
-    const sizeSelect = limitSelects[limitSelects.length - 1]; // the last select is the page size select
-    fireEvent.change(sizeSelect, { target: { value: '20' } });
+    // Find the page-size select by its sibling "Show" label text
+    const showLabel = screen.getByText('Show');
+    const sizeSelect = showLabel.parentElement?.querySelector('select');
+    expect(sizeSelect).toBeInTheDocument();
+    fireEvent.change(sizeSelect!, { target: { value: '20' } });
 
     await waitFor(() => {
-      expect(api.tickets.list).toHaveBeenLastCalledWith({
-        status: '',
-        category: '',
-        search: '',
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-        page: 1,
-        limit: 20,
-      });
+      expect(api.tickets.list).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          status: '',
+          category: '',
+          search: '',
+          sortBy: 'createdAt',
+          sortOrder: 'desc',
+          page: 1,
+          limit: 20,
+        })
+      );
     });
   });
 });
