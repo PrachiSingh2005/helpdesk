@@ -375,4 +375,133 @@ describe('TicketsList Component', () => {
       });
     });
   });
+
+  it('filters by student email when the advanced input is changed', async () => {
+    vi.mocked(api.tickets.list).mockResolvedValue({ tickets: mockTickets });
+
+    renderWithClient(<TicketsList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('#101')).toBeInTheDocument();
+    });
+
+    // Expand the Advanced Filters panel
+    const toggleButton = screen.getByTitle('Toggle Advanced Filters');
+    fireEvent.click(toggleButton);
+
+    // Get the Student Email input and type a value
+    const studentEmailInput = screen.getByLabelText(/Student Email/i);
+    fireEvent.change(studentEmailInput, { target: { value: 'alice' } });
+
+    await waitFor(() => {
+      expect(api.tickets.list).toHaveBeenLastCalledWith({
+        status: '',
+        category: '',
+        search: '',
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+        studentEmail: 'alice',
+      });
+    });
+  });
+
+  it('filters by AI confidence when the advanced dropdown changes', async () => {
+    vi.mocked(api.tickets.list).mockResolvedValue({ tickets: mockTickets });
+
+    renderWithClient(<TicketsList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('#101')).toBeInTheDocument();
+    });
+
+    // Expand the Advanced Filters panel
+    const toggleButton = screen.getByTitle('Toggle Advanced Filters');
+    fireEvent.click(toggleButton);
+
+    // Get the AI Confidence select and choose 'low'
+    const confidenceSelect = screen.getByLabelText(/AI Confidence/i);
+    fireEvent.change(confidenceSelect, { target: { value: 'low' } });
+
+    await waitFor(() => {
+      expect(api.tickets.list).toHaveBeenLastCalledWith({
+        status: '',
+        category: '',
+        search: '',
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+        maxConfidence: '0.85',
+      });
+    });
+  });
+
+  it('filters by date range when the advanced dropdown changes', async () => {
+    vi.mocked(api.tickets.list).mockResolvedValue({ tickets: mockTickets });
+
+    renderWithClient(<TicketsList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('#101')).toBeInTheDocument();
+    });
+
+    // Expand the Advanced Filters panel
+    const toggleButton = screen.getByTitle('Toggle Advanced Filters');
+    fireEvent.click(toggleButton);
+
+    // Get the Date Range select and choose 'week'
+    const dateRangeSelect = screen.getByLabelText(/Date Range/i);
+    fireEvent.change(dateRangeSelect, { target: { value: 'week' } });
+
+    await waitFor(() => {
+      expect(api.tickets.list).toHaveBeenLastCalledWith({
+        status: '',
+        category: '',
+        search: '',
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+        dateRange: 'week',
+      });
+    });
+  });
+
+  it('clears all filters when the Clear All Filters button is clicked', async () => {
+    vi.mocked(api.tickets.list).mockResolvedValue({ tickets: mockTickets });
+
+    renderWithClient(<TicketsList />);
+
+    await waitFor(() => {
+      expect(screen.getByText('#101')).toBeInTheDocument();
+    });
+
+    // Expand the Advanced Filters panel and set a filter
+    const toggleButton = screen.getByTitle('Toggle Advanced Filters');
+    fireEvent.click(toggleButton);
+
+    const confidenceSelect = screen.getByLabelText(/AI Confidence/i);
+    fireEvent.change(confidenceSelect, { target: { value: 'low' } });
+
+    await waitFor(() => {
+      expect(api.tickets.list).toHaveBeenLastCalledWith({
+        status: '',
+        category: '',
+        search: '',
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+        maxConfidence: '0.85',
+      });
+    });
+
+    // Click "Clear All Filters"
+    const clearButton = screen.getByRole('button', { name: /Clear All Filters/i });
+    fireEvent.click(clearButton);
+
+    await waitFor(() => {
+      expect(api.tickets.list).toHaveBeenLastCalledWith({
+        status: '',
+        category: '',
+        search: '',
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+      });
+    });
+  });
 });

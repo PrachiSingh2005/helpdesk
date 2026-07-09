@@ -23,6 +23,12 @@ export const TicketsList: React.FC = () => {
   const [category, setCategory] = useState('');
   const [search, setSearch] = useState('');
   
+  // Advanced Filters state
+  const [studentEmail, setStudentEmail] = useState('');
+  const [confidenceFilter, setConfidenceFilter] = useState('all');
+  const [dateRange, setDateRange] = useState('all');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  
   // Sorting state for TanStack Table
   const [sorting, setSorting] = useState<SortingState>([
     { id: 'createdAt', desc: true } // Default sort: newest first
@@ -37,12 +43,19 @@ export const TicketsList: React.FC = () => {
       const apiSortBy = sortingItem ? sortingItem.id : 'createdAt';
       const apiSortOrder = sortingItem ? (sortingItem.desc ? 'desc' : 'asc') : 'desc';
 
+      const minConf = confidenceFilter === 'high' ? '0.85' : undefined;
+      const maxConf = confidenceFilter === 'low' ? '0.85' : undefined;
+
       const data = await api.tickets.list({ 
         status, 
         category, 
         search, 
         sortBy: apiSortBy, 
-        sortOrder: apiSortOrder 
+        sortOrder: apiSortOrder,
+        studentEmail: studentEmail || undefined,
+        minConfidence: minConf,
+        maxConfidence: maxConf,
+        dateRange: dateRange !== 'all' ? dateRange : undefined,
       });
       setTickets(data.tickets);
     } catch (err: any) {
@@ -54,11 +67,21 @@ export const TicketsList: React.FC = () => {
 
   useEffect(() => {
     fetchTickets();
-  }, [status, category, sorting]); // Automatically refresh on status, category or sort changes
+  }, [status, category, sorting, studentEmail, confidenceFilter, dateRange]); // Automatically refresh on status, category, sort or filter changes
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchTickets();
+  };
+
+  const handleClearFilters = () => {
+    setStatus('');
+    setCategory('');
+    setSearch('');
+    setStudentEmail('');
+    setConfidenceFilter('all');
+    setDateRange('all');
+    setSorting([{ id: 'createdAt', desc: true }]);
   };
 
   const getStatusBadge = (ticketStatus: string) => {
@@ -255,6 +278,7 @@ export const TicketsList: React.FC = () => {
   });
 
   const dropdownVal = getDropdownValue();
+  const hasActiveAdvancedFilters = studentEmail !== '' || confidenceFilter !== 'all' || dateRange !== 'all';
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -322,6 +346,22 @@ export const TicketsList: React.FC = () => {
             </select>
           </div>
 
+          {/* Advanced Filters Toggle Button */}
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className={`p-2.5 border rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+              showAdvanced || hasActiveAdvancedFilters
+                ? 'bg-violet-600/20 border-violet-500/50 text-violet-400 hover:bg-violet-600/30'
+                : 'bg-slate-900/50 border-slate-700/50 text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
+            }`}
+            title="Toggle Advanced Filters"
+          >
+            <SlidersHorizontal className="w-4 h-4" />
+            {hasActiveAdvancedFilters && (
+              <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+            )}
+          </button>
+
           {/* Manual Refresh Button */}
           <button
             onClick={fetchTickets}
@@ -331,6 +371,73 @@ export const TicketsList: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Advanced Filters Panel */}
+      {showAdvanced && (
+        <div className="bg-slate-900/30 border border-slate-800/80 backdrop-blur-xl p-5 rounded-2xl grid grid-cols-1 md:grid-cols-3 gap-4 transition-all duration-300">
+          {/* Student Email Filter */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="filter-student-email" className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Student Email
+            </label>
+            <input
+              id="filter-student-email"
+              type="text"
+              placeholder="Filter by email address..."
+              value={studentEmail}
+              onChange={(e) => setStudentEmail(e.target.value)}
+              className="bg-slate-900/50 border border-slate-700/50 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-all"
+            />
+          </div>
+
+          {/* AI Confidence Filter */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="filter-ai-confidence" className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              AI Confidence
+            </label>
+            <select
+              id="filter-ai-confidence"
+              value={confidenceFilter}
+              onChange={(e) => setConfidenceFilter(e.target.value)}
+              className="bg-slate-900/50 border border-slate-700/50 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none cursor-pointer focus:border-violet-500 transition-all font-semibold"
+            >
+              <option value="all" className="bg-slate-900 text-white">All Confidences</option>
+              <option value="high" className="bg-slate-900 text-white">High Confidence (≥ 85%)</option>
+              <option value="low" className="bg-slate-900 text-white">Needs Review (&lt; 85%)</option>
+            </select>
+          </div>
+
+          {/* Date Range Filter */}
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="filter-date-range" className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+              Date Range
+            </label>
+            <select
+              id="filter-date-range"
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              className="bg-slate-900/50 border border-slate-700/50 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none cursor-pointer focus:border-violet-500 transition-all font-semibold"
+            >
+              <option value="all" className="bg-slate-900 text-white">All Time</option>
+              <option value="today" className="bg-slate-900 text-white">Past 24 Hours</option>
+              <option value="week" className="bg-slate-900 text-white">Past 7 Days</option>
+              <option value="month" className="bg-slate-900 text-white">Past 30 Days</option>
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          {((status || category || search || hasActiveAdvancedFilters) || sorting.length > 0 && (sorting[0].id !== 'createdAt' || !sorting[0].desc)) && (
+            <div className="md:col-span-3 flex justify-end">
+              <button
+                onClick={handleClearFilters}
+                className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 rounded-xl transition-all cursor-pointer border border-transparent hover:border-slate-800"
+              >
+                Clear All Filters
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-200 text-sm rounded-xl">

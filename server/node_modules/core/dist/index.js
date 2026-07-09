@@ -28,3 +28,13 @@ export const updateUserSchema = z.object({
         message: 'Password must be at least 8 characters.',
     }),
 });
+export const TicketStatus = {
+    OPEN: 'OPEN',
+    RESOLVED: 'RESOLVED',
+    CLOSED: 'CLOSED',
+};
+export const TicketCategory = {
+    GENERAL_QUESTION: 'GENERAL_QUESTION',
+    TECHNICAL_QUESTION: 'TECHNICAL_QUESTION',
+    REFUND_REQUEST: 'REFUND_REQUEST',
+};

@@ -1,3 +1,5 @@
+import type { TicketStatus, TicketCategory } from 'core';
+
 export const Role = {
   ADMIN: 'ADMIN',
   AGENT: 'AGENT',
@@ -37,8 +39,8 @@ export interface Ticket {
   ticketNumber: number;
   studentEmail: string;
   subject: string;
-  status: 'OPEN' | 'RESOLVED' | 'CLOSED';
-  category: 'GENERAL_QUESTION' | 'TECHNICAL_QUESTION' | 'REFUND_REQUEST';
+  status: TicketStatus;
+  category: TicketCategory;
   aiSummary?: string;
   aiSuggestedReply?: string;
   aiConfidence?: number;
@@ -114,7 +116,17 @@ export const api = {
     me: () => request<{ user: User }>('/api/auth/me'),
   },
   tickets: {
-    list: (params: { status?: string; category?: string; search?: string; sortBy?: string; sortOrder?: string } = {}) => {
+    list: (params: { 
+      status?: string; 
+      category?: string; 
+      search?: string; 
+      sortBy?: string; 
+      sortOrder?: string;
+      studentEmail?: string;
+      minConfidence?: string;
+      maxConfidence?: string;
+      dateRange?: string;
+    } = {}) => {
       const query = new URLSearchParams();
       if (params.status) {
         query.append('status', params.status);
@@ -130,6 +142,18 @@ export const api = {
       }
       if (params.sortOrder) {
         query.append('sortOrder', params.sortOrder);
+      }
+      if (params.studentEmail) {
+        query.append('studentEmail', params.studentEmail);
+      }
+      if (params.minConfidence) {
+        query.append('minConfidence', params.minConfidence);
+      }
+      if (params.maxConfidence) {
+        query.append('maxConfidence', params.maxConfidence);
+      }
+      if (params.dateRange) {
+        query.append('dateRange', params.dateRange);
       }
       return request<{ tickets: Ticket[] }>(`/api/tickets?${query.toString()}`);
     },

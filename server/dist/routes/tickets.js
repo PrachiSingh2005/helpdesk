@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { prisma } from '../db';
 import { requireAuth } from '../middleware/auth';
-import { TicketStatus, TicketCategory, MessageSender } from '@prisma/client';
+import { MessageSender } from '@prisma/client';
+import { TicketStatus, TicketCategory } from 'core';
 import { sendEmail } from '../services/email';
 import { asyncHandler } from '../utils/asyncHandler';
 const router = Router();
@@ -9,13 +10,46 @@ const router = Router();
 router.use(requireAuth);
 // Get tickets with sorting, search, and filtering
 router.get('/', asyncHandler(async (req, res) => {
-    const { status, category, search, sortBy, sortOrder } = req.query;
+    const { status, category, search, sortBy, sortOrder, studentEmail, minConfidence, maxConfidence, dateRange } = req.query;
     const whereClause = {};
     if (status && Object.values(TicketStatus).includes(status)) {
         whereClause.status = status;
     }
     if (category && Object.values(TicketCategory).includes(category)) {
         whereClause.category = category;
+    }
+    if (studentEmail && typeof studentEmail === 'string' && studentEmail.trim() !== '') {
+        whereClause.studentEmail = { contains: studentEmail.trim(), mode: 'insensitive' };
+    }
+    if (minConfidence || maxConfidence) {
+        whereClause.aiConfidence = {};
+        if (minConfidence) {
+            const parsedMin = parseFloat(minConfidence);
+            if (!isNaN(parsedMin)) {
+                whereClause.aiConfidence.gte = parsedMin;
+            }
+        }
+        if (maxConfidence) {
+            const parsedMax = parseFloat(maxConfidence);
+            if (!isNaN(parsedMax)) {
+                whereClause.aiConfidence.lte = parsedMax;
+            }
+        }
+    }
+    if (dateRange && typeof dateRange === 'string') {
+        const now = new Date();
+        if (dateRange === 'today') {
+            const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            whereClause.createdAt = { gte: oneDayAgo };
+        }
+        else if (dateRange === 'week') {
+            const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            whereClause.createdAt = { gte: oneWeekAgo };
+        }
+        else if (dateRange === 'month') {
+            const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            whereClause.createdAt = { gte: oneMonthAgo };
+        }
     }
     if (search && typeof search === 'string') {
         whereClause.OR = [
