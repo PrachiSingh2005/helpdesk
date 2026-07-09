@@ -4,7 +4,7 @@ import { requireAuth } from '../middleware/auth';
 import { MessageSender } from '@prisma/client';
 import { TicketStatus, TicketCategory } from 'core';
 import { sendEmail } from '../services/email';
-import { polishReply } from '../services/ai';
+import { polishReply, summarizeTicket } from '../services/ai';
 import { asyncHandler } from '../utils/asyncHandler';
 
 const router = Router();
@@ -346,6 +346,25 @@ router.post('/:id/polish-reply', asyncHandler(async (req, res) => {
 
   const polishedBody = await polishReply(body, ticket.subject, ticket.messages, ticket.studentEmail);
   return res.json({ polishedBody });
+}));
+
+// Summarize a ticket's conversation thread
+router.post('/:id/summarize', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id },
+    include: {
+      messages: { orderBy: { createdAt: 'asc' } },
+    },
+  });
+
+  if (!ticket) {
+    return res.status(404).json({ error: 'Ticket not found.' });
+  }
+
+  const summary = await summarizeTicket(ticket.subject, ticket.messages);
+  return res.json({ summary });
 }));
 
 export default router;

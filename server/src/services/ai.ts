@@ -304,3 +304,46 @@ ${draft}`;
 
   return text;
 }
+
+/**
+ * Summarizes a ticket's full conversation history.
+ * Returns a concise markdown-formatted summary of the thread.
+ */
+export async function summarizeTicket(
+  subject: string,
+  messages: Array<{ body: string; sender: string; createdAt: Date | string }>
+): Promise<string> {
+  const historyText = messages
+    .map((m, i) => `[${i + 1}] ${m.sender}: "${m.body}"`)
+    .join('\n');
+
+  if (!anthropicClient) {
+    // Mock summary from metadata
+    const studentMessages = messages.filter((m) => m.sender === 'STUDENT').length;
+    const agentMessages = messages.filter((m) => m.sender === 'AGENT' || m.sender === 'SYSTEM_AI').length;
+    const latestBody = messages[messages.length - 1]?.body?.substring(0, 80) ?? '';
+    return `**Ticket Summary**\n\nThe student opened a ticket regarding: *"${subject}"*.\n\nThe conversation contains **${studentMessages}** student message(s) and **${agentMessages}** support response(s).\n\nLatest message: "${latestBody}${latestBody.length >= 80 ? '…' : ''}"`;
+  }
+
+  try {
+    const response = await anthropicClient.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 400,
+      temperature: 0.3,
+      system: 'You are a concise support desk assistant. Summarize the ticket conversation in 3–5 bullet points in markdown. Focus on the core issue, any steps already taken, and the current resolution status. Do not include any preamble.',
+      messages: [
+        {
+          role: 'user',
+          content: `Ticket Subject: "${subject}"\n\nFull Conversation:\n${historyText}\n\nSummarize this conversation thread.`,
+        },
+      ],
+    });
+
+    const text = response.content[0].type === 'text' ? response.content[0].text : '';
+    return text.trim() || 'Summary could not be generated.';
+  } catch (error) {
+    console.error('Claude summarize API error:', error);
+    return 'Failed to generate summary due to a system error.';
+  }
+}
+

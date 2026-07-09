@@ -35,6 +35,8 @@ export const TicketDetail: React.FC = () => {
   const [replyBody, setReplyBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPolishing, setIsPolishing] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [ticketSummary, setTicketSummary] = useState<string | null>(null);
 
   const scrollAnchorRef = useRef<HTMLDivElement>(null);
 
@@ -142,6 +144,19 @@ export const TicketDetail: React.FC = () => {
     }
   };
 
+  const handleSummarize = async () => {
+    if (!ticket) return;
+    setIsSummarizing(true);
+    try {
+      const data = await api.tickets.summarize(ticket.id);
+      setTicketSummary(data.summary);
+    } catch (err: any) {
+      alert(err.message || 'Failed to summarize ticket.');
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
   if (loading) {
     return <TicketDetailSkeleton />;
   }
@@ -205,6 +220,39 @@ export const TicketDetail: React.FC = () => {
           )}
 
           <ReplyThread messages={replies} />
+
+          {/* ── Summarize button row ─────────────────────────────────────── */}
+          <div className="flex justify-center pt-2 pb-1">
+            <button
+              type="button"
+              onClick={handleSummarize}
+              disabled={isSummarizing || messages.length === 0}
+              className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-xs font-semibold bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 disabled:opacity-40 disabled:pointer-events-none px-4 py-2 rounded-xl transition-all cursor-pointer"
+            >
+              {isSummarizing ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="w-3.5 h-3.5" />
+              )}
+              {isSummarizing ? 'Summarizing…' : ticketSummary ? 'Regenerate Summary' : 'Summarize Conversation'}
+            </button>
+          </div>
+
+          {/* ── Inline summary panel ─────────────────────────────────────── */}
+          {ticketSummary && (
+            <div className="bg-indigo-950/40 border border-indigo-500/20 rounded-2xl p-4 space-y-2 animate-fadeIn">
+              <div className="flex items-center gap-2 pb-1.5 border-b border-indigo-500/15">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="text-[11px] font-bold text-indigo-300 uppercase tracking-widest">AI Conversation Summary</span>
+              </div>
+              <div
+                className="prose prose-sm prose-invert max-w-none text-slate-300 text-xs leading-relaxed"
+                dangerouslySetInnerHTML={{
+                  __html: DOMPurify.sanitize(marked.parse(ticketSummary) as string),
+                }}
+              />
+            </div>
+          )}
 
           {/* Scroll anchor */}
           <div ref={scrollAnchorRef} />

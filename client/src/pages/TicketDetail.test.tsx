@@ -203,4 +203,30 @@ describe('TicketDetail Component', () => {
 
     alertSpy.mockRestore();
   });
+
+  it('disables the Send Reply and Polish buttons when the draft reply is empty, and enables them when text is entered', async () => {
+    vi.mocked(api.tickets.get).mockResolvedValue({ ticket: mockTicket });
+    vi.mocked(api.tickets.listAgents).mockResolvedValue({ agents: mockAgents });
+
+    renderWithClient(<TicketDetail />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Need help with math assignment')[0]).toBeInTheDocument();
+    });
+
+    const sendBtn = screen.getByRole('button', { name: /Send Reply/i });
+    const polishBtn = screen.getByRole('button', { name: /Polish/i });
+
+    // Assert initially disabled
+    expect(sendBtn).toBeDisabled();
+    expect(polishBtn).toBeDisabled();
+
+    // Type into draft reply textarea
+    const textarea = screen.getByPlaceholderText(/Draft your reply to the student/i);
+    fireEvent.change(textarea, { target: { value: 'Let me look into that for you.' } });
+
+    // Assert buttons are now enabled
+    expect(sendBtn).not.toBeDisabled();
+    expect(polishBtn).not.toBeDisabled();
+  });
 });

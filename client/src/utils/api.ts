@@ -190,6 +190,10 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ body }),
       }),
+    summarize: (id: string) =>
+      request<{ summary: string }>(`/api/tickets/${id}/summarize`, {
+        method: 'POST',
+      }),
   },
   kb: {
     list: () => request<{ articles: KBArticle[] }>('/api/kb'),
