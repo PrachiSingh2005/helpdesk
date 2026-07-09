@@ -36,6 +36,7 @@ model User {
   role         Role        @default(AGENT)
   sessions     Session[]
   kbArticles   KBArticle[]
+  assignedTickets Ticket[]
   deletedAt    DateTime?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
@@ -61,6 +62,8 @@ model Ticket {
   aiSuggestedReply String?        @db.Text
   aiConfidence     Float?
   messages         Message[]
+  assignedToId     String?
+  assignedTo       User?          @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }

@@ -4,11 +4,19 @@ import { api } from '../utils/api';
 import type { Ticket } from '../utils/api';
 import { Loader2, ArrowLeft, Send, Sparkles } from 'lucide-react';
 
+interface Agent {
+  id: string;
+  email: string;
+  role: string;
+  name: string;
+}
+
 export const TicketDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState('');
@@ -26,8 +34,18 @@ export const TicketDetail: React.FC = () => {
     }
   };
 
+  const fetchAgents = async () => {
+    try {
+      const data = await api.tickets.listAgents();
+      setAgents(data.agents);
+    } catch (err: any) {
+      console.error('Failed to load agents list:', err);
+    }
+  };
+
   useEffect(() => {
     fetchTicketDetails();
+    fetchAgents();
   }, [id]);
 
   const handleStatusChange = async (newStatus: string) => {
@@ -47,6 +65,17 @@ export const TicketDetail: React.FC = () => {
       setTicket((prev) => (prev ? { ...prev, category: data.ticket.category } : null));
     } catch (err: any) {
       alert(err.message || 'Failed to update ticket category.');
+    }
+  };
+
+  const handleAgentChange = async (agentId: string) => {
+    if (!ticket) return;
+    const assignedToId = agentId === '' ? null : agentId;
+    try {
+      const data = await api.tickets.update(ticket.id, { assignedToId });
+      setTicket((prev) => (prev ? { ...prev, assignedTo: data.ticket.assignedTo } : null));
+    } catch (err: any) {
+      alert(err.message || 'Failed to assign ticket.');
     }
   };
 
@@ -218,6 +247,25 @@ export const TicketDetail: React.FC = () => {
               <option value="GENERAL_QUESTION">General Question</option>
               <option value="TECHNICAL_QUESTION">Technical Question</option>
               <option value="REFUND_REQUEST">Refund Request</option>
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="select-assigned-agent" className="block text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-2">
+              Assigned Agent
+            </label>
+            <select
+              id="select-assigned-agent"
+              value={ticket.assignedTo?.id || ''}
+              onChange={(e) => handleAgentChange(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700/50 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none cursor-pointer"
+            >
+              <option value="">Unassigned</option>
+              {agents.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.name} ({agent.role})
+                </option>
+              ))}
             </select>
           </div>
         </div>

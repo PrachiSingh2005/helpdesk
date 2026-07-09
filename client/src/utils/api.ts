@@ -44,6 +44,7 @@ export interface Ticket {
   aiSummary?: string;
   aiSuggestedReply?: string;
   aiConfidence?: number;
+  assignedTo?: { id: string; email: string; role: string; name: string } | null;
   messages?: Message[];
   createdAt: string;
   updatedAt: string;
@@ -172,7 +173,7 @@ export const api = {
       }>(`/api/tickets?${query.toString()}`);
     },
     get: (id: string) => request<{ ticket: Ticket }>(`/api/tickets/${id}`),
-    update: (id: string, updates: { status?: string; category?: string }) =>
+    update: (id: string, updates: { status?: string; category?: string; assignedToId?: string | null }) =>
       request<{ ticket: Ticket }>(`/api/tickets/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(updates),
@@ -182,6 +183,8 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ body }),
       }),
+    listAgents: () =>
+      request<{ agents: { id: string; email: string; role: string; name: string }[] }>('/api/tickets/agents'),
   },
   kb: {
     list: () => request<{ articles: KBArticle[] }>('/api/kb'),

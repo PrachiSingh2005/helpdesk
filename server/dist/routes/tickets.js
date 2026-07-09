@@ -90,13 +90,20 @@ router.get('/', asyncHandler(async (req, res) => {
     const parsedPage = parseInt(page || '1', 10);
     const parsedLimit = parseInt(limit || '10', 10);
     const skip = (parsedPage - 1) * parsedLimit;
-    const [tickets, total] = await Promise.all([
+    const [ticketsList, total] = await Promise.all([
         prisma.ticket.findMany({
             where: whereClause,
             include: {
                 messages: {
                     orderBy: { createdAt: 'desc' },
                     take: 1, // Preview the latest message in lists
+                },
+                assignedTo: {
+                    select: {
+                        id: true,
+                        email: true,
+                        role: true,
+                    },
                 },
             },
             orderBy: orderByClause,
@@ -105,6 +112,15 @@ router.get('/', asyncHandler(async (req, res) => {
         }),
         prisma.ticket.count({ where: whereClause }),
     ]);
+    const tickets = ticketsList.map((t) => {
+        let assignedTo = null;
+        if (t.assignedTo) {
+            const prefix = t.assignedTo.email.split('@')[0];
+            const name = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+            assignedTo = { ...t.assignedTo, name };
+        }
+        return { ...t, assignedTo };
+    });
     const totalPages = Math.ceil(total / parsedLimit);
     return res.json({
         tickets,
@@ -113,6 +129,29 @@ router.get('/', asyncHandler(async (req, res) => {
         limit: parsedLimit,
         totalPages,
     });
+}));
+// Get all active agents for dropdown select (accessible to any authenticated agent/admin)
+router.get('/agents', asyncHandler(async (req, res) => {
+    const agentsList = await prisma.user.findMany({
+        where: {
+            deletedAt: null,
+        },
+        select: {
+            id: true,
+            email: true,
+            role: true,
+        },
+        orderBy: { email: 'asc' },
+    });
+    const agents = agentsList.map((u) => {
+        const prefix = u.email.split('@')[0];
+        const name = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+        return {
+            ...u,
+            name,
+        };
+    });
+    return res.json({ agents });
 }));
 // Get detailed ticket structure and complete thread message logs
 router.get('/:id', asyncHandler(async (req, res) => {
@@ -123,17 +162,35 @@ router.get('/:id', asyncHandler(async (req, res) => {
             messages: {
                 orderBy: { createdAt: 'asc' },
             },
+            assignedTo: {
+                select: {
+                    id: true,
+                    email: true,
+                    role: true,
+                },
+            },
         },
     });
     if (!ticket) {
         return res.status(404).json({ error: 'Ticket not found.' });
     }
-    return res.json({ ticket });
+    let assignedTo = null;
+    if (ticket.assignedTo) {
+        const prefix = ticket.assignedTo.email.split('@')[0];
+        const name = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+        assignedTo = { ...ticket.assignedTo, name };
+    }
+    return res.json({
+        ticket: {
+            ...ticket,
+            assignedTo,
+        },
+    });
 }));
-// Update ticket status or category
+// Update ticket status, category, or assignedToId
 router.patch('/:id', asyncHandler(async (req, res) => {
     const { id } = req.params;
-    const { status, category } = req.body;
+    const { status, category, assignedToId } = req.body;
     const updateData = {};
     if (status && Object.values(TicketStatus).includes(status)) {
         updateData.status = status;
@@ -141,12 +198,44 @@ router.patch('/:id', asyncHandler(async (req, res) => {
     if (category && Object.values(TicketCategory).includes(category)) {
         updateData.category = category;
     }
+    if (assignedToId !== undefined) {
+        if (assignedToId === null || assignedToId === '') {
+            updateData.assignedToId = null;
+        }
+        else {
+            const user = await prisma.user.findUnique({ where: { id: assignedToId } });
+            if (!user || user.deletedAt !== null) {
+                return res.status(400).json({ error: 'Assigned agent not found.' });
+            }
+            updateData.assignedToId = assignedToId;
+        }
+    }
     try {
         const updatedTicket = await prisma.ticket.update({
             where: { id },
             data: updateData,
+            include: {
+                assignedTo: {
+                    select: {
+                        id: true,
+                        email: true,
+                        role: true,
+                    },
+                },
+            },
         });
-        return res.json({ ticket: updatedTicket });
+        let assignedTo = null;
+        if (updatedTicket.assignedTo) {
+            const prefix = updatedTicket.assignedTo.email.split('@')[0];
+            const name = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+            assignedTo = { ...updatedTicket.assignedTo, name };
+        }
+        return res.json({
+            ticket: {
+                ...updatedTicket,
+                assignedTo,
+            },
+        });
     }
     catch (error) {
         if (error.code === 'P2025') {

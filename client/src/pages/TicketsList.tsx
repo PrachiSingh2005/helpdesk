@@ -193,11 +193,19 @@ export const TicketsList: React.FC = () => {
         id: 'studentEmail',
         accessorKey: 'studentEmail',
         header: 'Student',
-        cell: ({ row }) => (
-          <span className="text-slate-400 text-xs font-semibold">
-            {row.original.studentEmail}
-          </span>
-        ),
+        cell: ({ row }) => {
+          const t = row.original;
+          return (
+            <div>
+              <div className="text-slate-200 text-xs font-semibold">
+                {t.studentEmail}
+              </div>
+              <div className="text-[10px] text-slate-400 mt-1 font-medium">
+                Assigned: <span className={t.assignedTo ? 'text-violet-450 font-bold' : 'text-slate-500 font-semibold'}>{t.assignedTo?.name || 'Unassigned'}</span>
+              </div>
+            </div>
+          );
+        },
       },
       {
         id: 'status',
