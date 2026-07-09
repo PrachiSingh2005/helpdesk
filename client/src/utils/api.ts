@@ -114,7 +114,7 @@ export const api = {
     me: () => request<{ user: User }>('/api/auth/me'),
   },
   tickets: {
-    list: (params: { status?: string; category?: string; search?: string; sortBy?: string } = {}) => {
+    list: (params: { status?: string; category?: string; search?: string; sortBy?: string; sortOrder?: string } = {}) => {
       const query = new URLSearchParams();
       if (params.status) {
         query.append('status', params.status);
@@ -127,6 +127,9 @@ export const api = {
       }
       if (params.sortBy) {
         query.append('sortBy', params.sortBy);
+      }
+      if (params.sortOrder) {
+        query.append('sortOrder', params.sortOrder);
       }
       return request<{ tickets: Ticket[] }>(`/api/tickets?${query.toString()}`);
     },

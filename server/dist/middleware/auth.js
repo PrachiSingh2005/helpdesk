@@ -19,6 +19,7 @@ export async function authMiddleware(req, res, next) {
                         role: true,
                         createdAt: true,
                         updatedAt: true,
+                        deletedAt: true,
                     },
                 },
             },
@@ -28,6 +29,12 @@ export async function authMiddleware(req, res, next) {
         }
         // Validate expiration
         if (new Date() > session.expiresAt) {
+            await prisma.session.delete({ where: { id: session.id } });
+            res.clearCookie('sid');
+            return next();
+        }
+        // Check soft deletion
+        if (session.user.deletedAt !== null) {
             await prisma.session.delete({ where: { id: session.id } });
             res.clearCookie('sid');
             return next();

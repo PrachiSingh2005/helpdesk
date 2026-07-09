@@ -9,7 +9,7 @@ const router = Router();
 router.use(requireAuth);
 // Get tickets with sorting, search, and filtering
 router.get('/', asyncHandler(async (req, res) => {
-    const { status, category, search, sortBy } = req.query;
+    const { status, category, search, sortBy, sortOrder } = req.query;
     const whereClause = {};
     if (status && Object.values(TicketStatus).includes(status)) {
         whereClause.status = status;
@@ -36,6 +36,22 @@ router.get('/', asyncHandler(async (req, res) => {
     }
     else if (sortBy === 'updated') {
         orderByClause = { updatedAt: 'desc' };
+    }
+    else if (sortBy && typeof sortBy === 'string') {
+        const order = sortOrder === 'asc' ? 'asc' : 'desc';
+        const allowedSortFields = [
+            'ticketNumber',
+            'studentEmail',
+            'status',
+            'category',
+            'createdAt',
+            'updatedAt',
+            'aiConfidence',
+            'subject',
+        ];
+        if (allowedSortFields.includes(sortBy)) {
+            orderByClause = { [sortBy]: order };
+        }
     }
     const tickets = await prisma.ticket.findMany({
         where: whereClause,

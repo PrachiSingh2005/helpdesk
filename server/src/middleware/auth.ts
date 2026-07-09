@@ -58,8 +58,7 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
     }
 
     // Attach to request object
-    const { deletedAt, ...userWithoutDeletedAt } = session.user;
-    req.user = userWithoutDeletedAt;
+    req.user = session.user;
     req.sessionId = session.id;
     next();
   } catch (error) {

@@ -51,10 +51,13 @@ app.get('/health', (req, res) => {
 });
 // Start Server
 const PORT = config.PORT;
+import { startSMTPServer } from './services/smtp';
 app.listen(PORT, () => {
     console.log(`=================================================`);
     console.log(`HelpDesk Backend Services Started Successfully!  `);
     console.log(`Local Access: http://localhost:${PORT}            `);
     console.log(`Cross-Origin Resource Sharing (CORS): ${config.CLIENT_URL}`);
     console.log(`=================================================`);
+    // Start local SMTP server for inbound email testing
+    startSMTPServer();
 });
