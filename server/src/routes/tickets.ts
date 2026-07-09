@@ -269,7 +269,7 @@ router.patch('/:id', asyncHandler(async (req, res) => {
 // Post a manual reply from an agent, emailing it to the student
 router.post('/:id/messages', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { body } = req.body;
+  const { body, bodyHtml } = req.body;
 
   if (!body || typeof body !== 'string' || body.trim() === '') {
     return res.status(400).json({ error: 'Message body is required.' });
@@ -313,6 +313,7 @@ router.post('/:id/messages', asyncHandler(async (req, res) => {
     to: ticket.studentEmail,
     subject: `Re: [Ticket #${ticket.ticketNumber}] ${ticket.subject}`,
     body,
+    bodyHtml,
     ticketNumber: ticket.ticketNumber,
     inReplyTo,
   });

@@ -11,6 +11,7 @@ interface SendEmailParams {
   to: string;
   subject: string;
   body: string;
+  bodyHtml?: string;
   ticketNumber: number;
   inReplyTo?: string;
 }
@@ -23,6 +24,7 @@ export async function sendEmail({
   to,
   subject,
   body,
+  bodyHtml,
   ticketNumber,
   inReplyTo,
 }: SendEmailParams): Promise<void> {
@@ -32,6 +34,10 @@ export async function sendEmail({
   console.log(`[EMAIL OUTBOUND] Preparing delivery to ${to} for Ticket #${ticketNumber}`);
   console.log(`[EMAIL OUTBOUND] Subject: ${subject}`);
   console.log(`[EMAIL OUTBOUND] Body Preview: ${body.substring(0, 100)}...`);
+
+  if (bodyHtml) {
+    console.log(`[EMAIL OUTBOUND] HTML Body Preview: ${bodyHtml.substring(0, 100)}...`);
+  }
 
   if (inReplyTo) {
     console.log(`[EMAIL THREADING] Setting In-Reply-To and References header: ${inReplyTo}`);
@@ -44,6 +50,7 @@ export async function sendEmail({
         from: config.EMAIL_FROM,
         subject,
         text: body,
+        html: bodyHtml || `<div>${body.replace(/\n/g, '<br>')}</div>`,
       };
 
       if (inReplyTo) {

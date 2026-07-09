@@ -13,6 +13,8 @@ import {
   Sparkles,
   MessageSquare,
 } from 'lucide-react';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 interface Agent {
   id: string;
@@ -110,7 +112,8 @@ export const TicketDetail: React.FC = () => {
     if (!ticket || !replyBody.trim()) return;
     setIsSubmitting(true);
     try {
-      await api.tickets.reply(ticket.id, replyBody);
+      const replyBodyHtml = DOMPurify.sanitize(marked.parse(replyBody) as string);
+      await api.tickets.reply(ticket.id, replyBody, replyBodyHtml);
       setReplyBody('');
       await fetchTicketDetails(); // re-fetch full thread + updated status
     } catch (err: any) {

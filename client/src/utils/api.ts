@@ -178,10 +178,10 @@ export const api = {
         method: 'PATCH',
         body: JSON.stringify(updates),
       }),
-    reply: (id: string, body: string) =>
+    reply: (id: string, body: string, bodyHtml?: string) =>
       request<{ message: Message }>(`/api/tickets/${id}/messages`, {
         method: 'POST',
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body, bodyHtml }),
       }),
     listAgents: () =>
       request<{ agents: { id: string; email: string; role: string; name: string }[] }>('/api/tickets/agents'),

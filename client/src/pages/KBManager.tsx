@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../utils/api';
 import type { KBArticle } from '../utils/api';
 import { BookOpen, Plus, Save, Trash2, Edit3, Eye, Loader2 } from 'lucide-react';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 export const KBManager: React.FC = () => {
   const [articles, setArticles] = useState<KBArticle[]>([]);
@@ -218,9 +220,12 @@ export const KBManager: React.FC = () => {
                   className="flex-1 bg-transparent text-slate-300 text-sm leading-relaxed placeholder-slate-600 focus:outline-none resize-none font-mono"
                 />
               ) : (
-                <div className="flex-1 text-slate-300 prose prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap">
-                  {content}
-                </div>
+                <div
+                  className="flex-1 text-slate-300 prose prose-invert max-w-none text-sm leading-relaxed"
+                  dangerouslySetInnerHTML={{
+                    __html: DOMPurify.sanitize(marked.parse(content) as string),
+                  }}
+                />
               )}
             </div>
           </form>
