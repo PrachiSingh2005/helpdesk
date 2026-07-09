@@ -105,7 +105,7 @@ export async function handleInboundEmail({
     const { redactedText, mapping } = redactPII(text);
 
     // Generate the suggested response from Claude using KB search context
-    const aiResult = await generateSuggestedReply(ticket.subject, messageHistory);
+    const aiResult = await generateSuggestedReply(ticket.subject, messageHistory, ticket.studentEmail);
 
     // Update the ticket record with the latest AI draft and confidence score
     await prisma.ticket.update({
@@ -179,9 +179,11 @@ export async function handleInboundEmail({
     });
 
     // Generate suggested reply for the new ticket
-    const aiResult = await generateSuggestedReply(subject, [
-      { body: text, sender: MessageSender.STUDENT },
-    ]);
+    const aiResult = await generateSuggestedReply(
+      subject,
+      [{ body: text, sender: MessageSender.STUDENT }],
+      studentEmail
+    );
 
     // Save suggestion and confidence on the ticket
     await prisma.ticket.update({

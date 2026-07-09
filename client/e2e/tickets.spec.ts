@@ -117,4 +117,43 @@ test.describe('HelpDesk E2E Testing Suite - Ticket Details & Reply Thread Integr
     await expect(page.getByTestId('reply-thread')).toBeVisible();
     await expect(page.getByText(typedText)).toBeVisible();
   });
+
+  test('4. Agent can polish a draft reply using Polish button and then submit it', async ({ page, request }) => {
+    const studentEmail = `student-${Date.now()}@college.edu`;
+    const subject = `Password reset request ${Date.now()}`;
+    const text = 'I am trying to reset my password but I get an error.';
+
+    // 1. Ingest initial ticket via webhook
+    const response = await request.post('/api/emails/inbound', {
+      data: {
+        from: studentEmail,
+        subject,
+        text,
+      },
+    });
+    expect(response.status()).toBe(200);
+    const { ticketId } = await response.json();
+
+    // 2. Log in and go to ticket detail
+    await loginAsAdmin(page);
+    await page.goto(`/dashboard/tickets/${ticketId}`);
+
+    // 3. Enter a draft reply
+    const draftText = 'We will reset it for you.';
+    const textarea = page.locator('textarea[placeholder*="Draft your reply"]');
+    await textarea.fill(draftText);
+
+    // 4. Click Polish button
+    await page.getByRole('button', { name: 'Polish' }).click();
+
+    // Verify editor is updated with polished version
+    await expect(textarea).not.toHaveValue(draftText);
+    const polishedVal = await textarea.inputValue();
+    expect(polishedVal).toContain('Polished by GPT-5 Nano');
+
+    // 5. Submit and verify reply gets added to database and persists in thread
+    await page.getByRole('button', { name: 'Send Reply' }).click();
+    await expect(page.getByTestId('reply-thread')).toBeVisible();
+    await expect(page.getByText(polishedVal)).toBeVisible();
+  });
 });

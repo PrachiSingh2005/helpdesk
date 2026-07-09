@@ -4,6 +4,7 @@ import { requireAuth } from '../middleware/auth';
 import { MessageSender } from '@prisma/client';
 import { TicketStatus, TicketCategory } from 'core';
 import { sendEmail } from '../services/email';
+import { polishReply } from '../services/ai';
 import { asyncHandler } from '../utils/asyncHandler';
 
 const router = Router();
@@ -319,6 +320,32 @@ router.post('/:id/messages', asyncHandler(async (req, res) => {
   });
 
   return res.status(201).json({ message: newMessage });
+}));
+
+// Polish a draft reply using Vercel AI SDK and gpt5-nano
+router.post('/:id/polish-reply', asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { body } = req.body;
+
+  if (!body || typeof body !== 'string' || body.trim() === '') {
+    return res.status(400).json({ error: 'Message body is required to polish.' });
+  }
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id },
+    include: {
+      messages: {
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+  });
+
+  if (!ticket) {
+    return res.status(404).json({ error: 'Ticket not found.' });
+  }
+
+  const polishedBody = await polishReply(body, ticket.subject, ticket.messages, ticket.studentEmail);
+  return res.json({ polishedBody });
 }));
 
 export default router;

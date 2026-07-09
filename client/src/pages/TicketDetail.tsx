@@ -34,6 +34,7 @@ export const TicketDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [replyBody, setReplyBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPolishing, setIsPolishing] = useState(false);
 
   const scrollAnchorRef = useRef<HTMLDivElement>(null);
 
@@ -126,6 +127,19 @@ export const TicketDetail: React.FC = () => {
   const applyAISuggestion = () => {
     if (!ticket?.aiSuggestedReply) return;
     setReplyBody(ticket.aiSuggestedReply);
+  };
+
+  const handlePolishReply = async () => {
+    if (!ticket || !replyBody.trim()) return;
+    setIsPolishing(true);
+    try {
+      const data = await api.tickets.polish(ticket.id, replyBody);
+      setReplyBody(data.polishedBody);
+    } catch (err: any) {
+      alert(err.message || 'Failed to polish reply.');
+    } finally {
+      setIsPolishing(false);
+    }
   };
 
   if (loading) {
@@ -230,19 +244,36 @@ export const TicketDetail: React.FC = () => {
                 <div />
               )}
 
-              {/* Send button */}
-              <button
-                type="submit"
-                disabled={isSubmitting || !replyBody.trim()}
-                className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:from-slate-700 disabled:to-slate-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none hover:scale-[1.01] active:scale-[0.99]"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-                {isSubmitting ? 'Sending…' : 'Send Reply'}
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Polish button */}
+                <button
+                  type="button"
+                  onClick={handlePolishReply}
+                  disabled={isSubmitting || isPolishing || !replyBody.trim()}
+                  className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 hover:text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-slate-700/60 shadow-md transition-all cursor-pointer disabled:pointer-events-none"
+                >
+                  {isPolishing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                  )}
+                  {isPolishing ? 'Polishing…' : 'Polish'}
+                </button>
+
+                {/* Send button */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting || isPolishing || !replyBody.trim()}
+                  className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:from-slate-700 disabled:to-slate-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                  {isSubmitting ? 'Sending…' : 'Send Reply'}
+                </button>
+              </div>
             </div>
           </form>
         </div>

@@ -185,6 +185,11 @@ export const api = {
       }),
     listAgents: () =>
       request<{ agents: { id: string; email: string; role: string; name: string }[] }>('/api/tickets/agents'),
+    polish: (id: string, body: string) =>
+      request<{ polishedBody: string }>(`/api/tickets/${id}/polish-reply`, {
+        method: 'POST',
+        body: JSON.stringify({ body }),
+      }),
   },
   kb: {
     list: () => request<{ articles: KBArticle[] }>('/api/kb'),
