@@ -80,4 +80,56 @@ test.describe('HelpDesk E2E Testing Suite - User Management Page', () => {
     await expect(page.getByRole('cell', { name: 'Crud-updated', exact: true })).not.toBeVisible();
     await expect(page.getByRole('cell', { name: 'crud-updated@example.com', exact: true })).not.toBeVisible();
   });
+
+  test('3. Deleting a user unassigns all tickets currently assigned to them', async ({ page, request }) => {
+    const studentEmail = `student-${Date.now()}@college.edu`;
+    const subject = `Assigned ticket query ${Date.now()}`;
+    const text = 'Help with assigning agents';
+
+    // 1. Ingest a ticket via webhook
+    const response = await request.post('/api/emails/inbound', {
+      data: {
+        from: studentEmail,
+        subject,
+        text,
+      },
+    });
+    expect(response.status()).toBe(200);
+    const { ticketId } = await response.json();
+
+    // 2. Admin logs in
+    await page.goto('/login');
+    await page.locator('#email').fill('admin@example.com');
+    await page.locator('#password').fill('password123');
+    await page.getByRole('button', { name: 'Sign In' }).click();
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    // 3. Go to /users and create a new agent
+    await page.goto('/users');
+    await page.getByRole('button', { name: 'Create User' }).first().click();
+    await page.locator('#name-input').fill('Temp Agent');
+    await page.locator('#email-input').fill('temp-agent@example.com');
+    await page.locator('#password-input').fill('password12345');
+    await page.locator('button[type="submit"]').click();
+
+    // Verify user is in list
+    await expect(page.getByRole('cell', { name: 'Temp-agent', exact: true })).toBeVisible();
+
+    // 4. Go to the ticket detail page and assign the ticket to this agent
+    await page.goto(`/dashboard/tickets/${ticketId}`);
+    
+    // Assign to Temp Agent and wait for verification
+    await page.locator('#select-assigned-agent').selectOption({ label: 'Temp-agent (AGENT)' });
+    await expect(page.locator('#select-assigned-agent')).not.toHaveValue('');
+
+    // 5. Go back to /users page and delete the agent
+    await page.goto('/users');
+    await page.getByRole('button', { name: 'Delete Temp-agent' }).click();
+    await page.getByRole('button', { name: 'Confirm Delete' }).click();
+    await expect(page.getByRole('cell', { name: 'Temp-agent', exact: true })).not.toBeVisible();
+
+    // 6. Go back to the ticket detail page and verify it is unassigned
+    await page.goto(`/dashboard/tickets/${ticketId}`);
+    await expect(page.locator('#select-assigned-agent')).toHaveValue('');
+  });
 });

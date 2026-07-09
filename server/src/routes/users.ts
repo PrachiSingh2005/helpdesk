@@ -160,6 +160,12 @@ router.delete(
     const [prefix, domain] = userToDelete.email.split('@');
     const softDeletedEmail = `${prefix}-deleted-${Date.now()}@${domain}`;
 
+    // Unassign all tickets assigned to this user
+    await prisma.ticket.updateMany({
+      where: { assignedToId: id },
+      data: { assignedToId: null },
+    });
+
     await prisma.user.update({
       where: { id },
       data: {
