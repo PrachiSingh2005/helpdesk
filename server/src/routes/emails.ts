@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../db';
 import { TicketStatus, MessageSender, TicketCategory } from '@prisma/client';
 import { redactPII, rehydratePII } from '../services/pii';
-import { classifyAndSummarizeTicket, generateSuggestedReply } from '../services/ai';
+import { generateSuggestedReply, classifyTicketInBackground } from '../services/ai';
 import { sendEmail } from '../services/email';
 import { config } from '../config';
 
@@ -148,26 +148,22 @@ export async function handleInboundEmail({
       console.log(`[INBOUND PROCESSING] Automatically sent high-confidence AI response for Ticket #${ticket.ticketNumber}`);
     }
   } else {
-    // Message is a new inquiry. Create a new Ticket.
+    // New inquiry — create the ticket immediately so the caller gets a fast response
     console.log(`[INBOUND PROCESSING] Creating a new ticket for student: ${studentEmail}`);
 
-    // Redact PII from the student message
     const { redactedText, mapping } = redactPII(text);
 
-    // Perform AI classification and summarization on the redacted query
-    const classification = await classifyAndSummarizeTicket(subject, redactedText);
-
-    // Create new ticket in database
+    // Create the ticket with placeholder defaults — classification happens in the background
     ticket = await prisma.ticket.create({
       data: {
         studentEmail,
         subject,
-        category: classification.category,
-        aiSummary: classification.summary,
+        category: 'GENERAL_QUESTION',   // placeholder; updated by background job
+        aiSummary: null,                  // populated once GPT finishes
       },
     });
 
-    // Store the initial student message
+    // Persist the initial student message
     await prisma.message.create({
       data: {
         ticketId: ticket.id,
@@ -178,53 +174,17 @@ export async function handleInboundEmail({
       },
     });
 
-    // Generate suggested reply for the new ticket
-    const aiResult = await generateSuggestedReply(
+    console.log(`[INBOUND PROCESSING] Ticket #${ticket.ticketNumber} created — GPT classification queued in background`);
+
+    // 🔥 Fire-and-forget: GPT classification + suggested reply + optional auto-reply
+    classifyTicketInBackground(
+      ticket.id,
       subject,
-      [{ body: text, sender: MessageSender.STUDENT }],
-      studentEmail
+      redactedText,
+      studentEmail,
+      mapping,
+      config
     );
-
-    // Save suggestion and confidence on the ticket
-    await prisma.ticket.update({
-      where: { id: ticket.id },
-      data: {
-        aiSuggestedReply: aiResult.suggestedReply,
-        aiConfidence: aiResult.confidence,
-      },
-    });
-
-    // Auto-reply if AI confidence is above threshold
-    if (aiResult.confidence >= config.AUTO_REPLY_CONFIDENCE_THRESHOLD) {
-      const rehydratedReply = rehydratePII(aiResult.suggestedReply, mapping);
-
-      // Store the automated response in database messages
-      await prisma.message.create({
-        data: {
-          ticketId: ticket.id,
-          sender: MessageSender.SYSTEM_AI,
-          senderEmail: 'ai@helpdesk.edu',
-          body: rehydratedReply,
-        },
-      });
-
-      // Set status to RESOLVED
-      await prisma.ticket.update({
-        where: { id: ticket.id },
-        data: { status: TicketStatus.RESOLVED },
-      });
-
-      // Send email back to student
-      await sendEmail({
-        to: studentEmail,
-        subject: `Re: [Ticket #${ticket.ticketNumber}] ${ticket.subject}`,
-        body: rehydratedReply,
-        ticketNumber: ticket.ticketNumber,
-        inReplyTo: messageId || undefined,
-      });
-
-      console.log(`[INBOUND PROCESSING] Automatically sent high-confidence AI response for Ticket #${ticket.ticketNumber}`);
-    }
   }
 
   return ticket;

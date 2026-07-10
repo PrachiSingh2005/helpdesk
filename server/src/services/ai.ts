@@ -1,13 +1,21 @@
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { config } from '../config';
 import { prisma } from '../db';
-import { TicketCategory } from '@prisma/client';
+import { TicketCategory, TicketStatus, MessageSender } from '@prisma/client';
 
 let anthropicClient: Anthropic | null = null;
 if (config.ANTHROPIC_API_KEY && config.ANTHROPIC_API_KEY !== 'your-anthropic-api-key-here') {
   anthropicClient = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY });
 } else {
   console.warn('WARNING: ANTHROPIC_API_KEY is not configured. AI operations will use mock/fallback responses.');
+}
+
+let openaiClient: OpenAI | null = null;
+if (config.OPENAI_API_KEY && config.OPENAI_API_KEY !== '') {
+  openaiClient = new OpenAI({ apiKey: config.OPENAI_API_KEY });
+} else {
+  console.warn('WARNING: OPENAI_API_KEY is not configured. GPT classification will use keyword fallback.');
 }
 
 export interface ClassificationResult {
@@ -87,6 +95,160 @@ Output your response strictly as a JSON object, with no formatting or other text
       summary: 'Failed to generate summary due to system error.',
     };
   }
+}
+
+/**
+ * Classifies a ticket using GPT (gpt-4o-mini) via the OpenAI API.
+ * Falls back to keyword-based heuristics if OPENAI_API_KEY is not configured
+ * OR if the API call fails (e.g. quota exceeded).
+ */
+export async function gptClassifyTicket(
+  subject: string,
+  body: string
+): Promise<ClassificationResult> {
+  const lowerBody = (body + ' ' + subject).toLowerCase();
+
+  // Shared keyword fallback — used when GPT is unavailable or fails
+  function keywordFallback(): ClassificationResult {
+    let category: TicketCategory = TicketCategory.GENERAL_QUESTION;
+    if (lowerBody.includes('refund') || lowerBody.includes('money') || lowerBody.includes('billing')) {
+      category = TicketCategory.REFUND_REQUEST;
+    } else if (lowerBody.includes('wifi') || lowerBody.includes('password') || lowerBody.includes('portal') || lowerBody.includes('error') || lowerBody.includes('database') || lowerBody.includes('connection')) {
+      category = TicketCategory.TECHNICAL_QUESTION;
+    }
+    return {
+      category,
+      summary: `Student is inquiring about "${subject.substring(0, 50)}".`,
+    };
+  }
+
+  if (!openaiClient) {
+    console.log('[GPT] OpenAI not configured — using keyword fallback classifier.');
+    return keywordFallback();
+  }
+
+  try {
+    const completion = await openaiClient.chat.completions.create({
+      model: 'gpt-4o-mini',
+      temperature: 0,
+      max_tokens: 200,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are a university support desk coordinator. Classify the ticket and write a 1-2 sentence summary. ' +
+            'Return ONLY a JSON object with keys "category" (one of GENERAL_QUESTION, TECHNICAL_QUESTION, REFUND_REQUEST) and "summary".',
+        },
+        {
+          role: 'user',
+          content: `Subject: "${subject}"\nBody: "${body}"`,
+        },
+      ],
+    });
+
+    const raw = completion.choices[0]?.message?.content ?? '{}';
+    const result = JSON.parse(raw);
+    const validCategories = Object.values(TicketCategory) as string[];
+    return {
+      category: validCategories.includes(result.category)
+        ? (result.category as TicketCategory)
+        : TicketCategory.GENERAL_QUESTION,
+      summary: result.summary || 'Summary generation failed.',
+    };
+  } catch (error: any) {
+    console.error(`[GPT] Classification API error (${error?.status ?? 'unknown'}) — falling back to keyword classifier.`);
+    return keywordFallback();
+  }
+}
+
+
+/**
+ * Non-blocking background pipeline: classifies a newly created ticket with GPT,
+ * generates an AI suggested reply, persists both to the DB, and optionally
+ * sends an auto-reply email if confidence is high enough.
+ *
+ * Call this AFTER the ticket and its first message have already been written to
+ * the DB. The function never throws — all errors are logged internally.
+ */
+export function classifyTicketInBackground(
+  ticketId: string,
+  subject: string,
+  messageBody: string,
+  studentEmail: string,
+  mapping: Record<string, string>,
+  config: { AUTO_REPLY_CONFIDENCE_THRESHOLD: number }
+): void {
+  // Intentionally NOT awaited — runs detached from the request lifecycle
+  Promise.resolve()
+    .then(async () => {
+      console.log(`[BG] Starting background classification for ticket ${ticketId}`);
+
+      // 1. GPT classification
+      const classification = await gptClassifyTicket(subject, messageBody);
+
+      await prisma.ticket.update({
+        where: { id: ticketId },
+        data: {
+          category: classification.category,
+          aiSummary: classification.summary,
+        },
+      });
+
+      console.log(`[BG] Ticket ${ticketId} classified as ${classification.category}`);
+
+      // 2. AI suggested reply (uses existing Claude/mock path)
+      const aiResult = await generateSuggestedReply(
+        subject,
+        [{ body: messageBody, sender: 'STUDENT' }],
+        studentEmail
+      );
+
+      await prisma.ticket.update({
+        where: { id: ticketId },
+        data: {
+          aiSuggestedReply: aiResult.suggestedReply,
+          aiConfidence: aiResult.confidence,
+        },
+      });
+
+      // 3. Auto-reply if above confidence threshold
+      if (aiResult.confidence >= config.AUTO_REPLY_CONFIDENCE_THRESHOLD) {
+        const { rehydratePII } = await import('./pii');
+        const { sendEmail } = await import('./email');
+
+        const rehydratedReply = rehydratePII(aiResult.suggestedReply, mapping);
+
+        const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
+        if (!ticket) return;
+
+        await prisma.message.create({
+          data: {
+            ticketId,
+            sender: MessageSender.SYSTEM_AI,
+            senderEmail: 'ai@helpdesk.edu',
+            body: rehydratedReply,
+          },
+        });
+
+        await prisma.ticket.update({
+          where: { id: ticketId },
+          data: { status: TicketStatus.RESOLVED },
+        });
+
+        await sendEmail({
+          to: studentEmail,
+          subject: `Re: [Ticket #${ticket.ticketNumber}] ${ticket.subject}`,
+          body: rehydratedReply,
+          ticketNumber: ticket.ticketNumber,
+        });
+
+        console.log(`[BG] Auto-reply sent for ticket ${ticketId} (confidence ${aiResult.confidence})`);
+      }
+    })
+    .catch((err) => {
+      console.error(`[BG] Background classification failed for ticket ${ticketId}:`, err);
+    });
 }
 
 /**
