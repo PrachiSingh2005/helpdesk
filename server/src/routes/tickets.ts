@@ -17,6 +17,15 @@ router.get('/', asyncHandler(async (req, res) => {
   const { status, category, search, sortBy, sortOrder, studentEmail, minConfidence, maxConfidence, dateRange, page, limit } = req.query;
   const whereClause: any = {};
 
+  // Unconditionally exclude tickets resolved by AI (which contain messages sent by SYSTEM_AI)
+  whereClause.NOT = {
+    messages: {
+      some: {
+        sender: MessageSender.SYSTEM_AI,
+      },
+    },
+  };
+
   if (status && Object.values(TicketStatus).includes(status as TicketStatus)) {
     whereClause.status = status as TicketStatus;
   }

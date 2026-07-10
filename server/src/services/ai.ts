@@ -3,6 +3,8 @@ import OpenAI from 'openai';
 import { config } from '../config';
 import { prisma } from '../db';
 import { TicketCategory, TicketStatus, MessageSender } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
 
 let anthropicClient: Anthropic | null = null;
 if (config.ANTHROPIC_API_KEY && config.ANTHROPIC_API_KEY !== 'your-anthropic-api-key-here') {
@@ -196,10 +198,52 @@ export function classifyTicketInBackground(
 }
 
 /**
+ * Helper to clean and normalize search keywords.
+ */
+function cleanWord(word: string): string {
+  let cleaned = word.toLowerCase().trim();
+  cleaned = cleaned.replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
+  if (cleaned === 'wi-fi') return 'wifi';
+  return cleaned;
+}
+
+/**
+ * Helper to parse the knowledge-base.md file into structured articles.
+ */
+function getKbFromFile(): Array<{ title: string; content: string }> {
+  const filePath = path.join(__dirname, '../../knowledge-base.md');
+  if (!fs.existsSync(filePath)) {
+    return [];
+  }
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const articles: Array<{ title: string; content: string }> = [];
+    const sections = content.split(/^#+\s+/m);
+    for (const section of sections) {
+      const trimmed = section.trim();
+      if (!trimmed) continue;
+      const lines = trimmed.split('\n');
+      const title = lines[0].trim();
+      const body = lines.slice(1).join('\n').trim();
+      if (title && body) {
+        articles.push({ title, content: body });
+      }
+    }
+    return articles;
+  } catch (err) {
+    console.error('[KB] Failed to parse knowledge-base.md:', err);
+    return [];
+  }
+}
+
+/**
  * Searches the Knowledge Base for the most relevant articles using keywords.
  */
 async function searchKB(query: string): Promise<Array<{ title: string; content: string }>> {
-  const articles = await prisma.kBArticle.findMany();
+  const dbArticles = await prisma.kBArticle.findMany();
+  const fileArticles = getKbFromFile();
+  const articles = [...dbArticles, ...fileArticles];
+
   const searchTerms = query.toLowerCase().split(/\s+/).filter((t) => t.length > 2);
 
   const matches = articles.map((art) => {
@@ -235,7 +279,9 @@ export async function generateSuggestedReply(
 
   // If no specific articles matched, pass the top 3 articles
   if (kbContext.length === 0) {
-    const allKb = await prisma.kBArticle.findMany({ take: 3 });
+    const dbArticles = await prisma.kBArticle.findMany({ take: 3 });
+    const fileArticles = getKbFromFile().slice(0, 3);
+    const allKb = [...dbArticles, ...fileArticles].slice(0, 3);
     kbContext = allKb.map((a) => ({ title: a.title, content: a.content }));
   }
 
@@ -251,30 +297,64 @@ export async function generateSuggestedReply(
   }
 
   if (!anthropicClient) {
-    // Fallback Mock replies based on common queries
-    let reply = `Dear ${studentName},\n\nThank you for reaching out. We have received your request. An agent will review it shortly.`;
-    let confidence = 0.5;
-
-    const lowerMsg = latestMessage.toLowerCase();
-    if (lowerMsg.includes('wifi') || lowerMsg.includes('wi-fi')) {
-      reply = `Dear ${studentName},\n\nThank you for contacting HelpDesk.\n\nTo connect to the campus secure Wi-Fi (**EduWifi**):\n1. Select **EduWifi** from your device settings.\n2. Log in using your student email and portal password.\n3. Accept/Trust the certificate if prompted.\n\nIf you have further technical issues, feel free to reply directly to this thread!`;
-      confidence = 0.95;
-    } else if (lowerMsg.includes('refund')) {
-      reply = `Dear ${studentName},\n\nThank you for contacting HelpDesk.\n\nAccording to our policy, refund eligibility depends on when you submit your request:\n- **Full Refund**: Requests submitted within the first 14 calendar days of the semester.\n- **Partial Refund (50%)**: Between day 15 and day 30.\n- **No Refund**: After the 30th calendar day.\n\nPlease confirm your semester start date so we can process your request accordingly.`;
-      confidence = 0.95;
+    // Dynamic Matcher using the parsed Markdown file articles
+    const fileArticles = getKbFromFile();
+    
+    const stopWords = ['the', 'and', 'but', 'with', 'are', 'for', 'you', 'can', 'not', 'get', 'out', 'your', 'this', 'that', 'have', 'has', 'had', 'was', 'were', 'been', 'will', 'would', 'should', 'could', 'they', 'them', 'their', 'who', 'what', 'where', 'when', 'why', 'how', 'about', 'from', 'here', 'there', 'hello', 'please', 'thanks', 'thank', 'need', 'help', 'cannot', 'says', 'would', 'like', 'know', 'when', 'some', 'any', 'our', 'them'];
+    const genericWords = ['campus', 'student', 'portal', 'policy', 'question', 'help', 'support', 'information', 'general', 'query', 'ticket', 'issue', 'problem', 'request', 'registration', 'timeline'];
+    
+    const rawTerms = searchContext.split(/\s+/).map(cleanWord).filter((t) => t.length > 2);
+    const searchTerms = rawTerms.filter(t => !stopWords.includes(t) && !genericWords.includes(t));
+    
+    let bestArticle: { title: string; content: string } | null = null;
+    let maxScore = 0;
+    let titleMatched = false;
+    
+    for (const art of fileArticles) {
+      let score = 0;
+      let hasTitleMatch = false;
+      const titleWords = art.title.split(/\s+/).map(cleanWord).filter((t) => t.length > 2);
+      const contentWords = art.content.split(/\s+/).map(cleanWord).filter((t) => t.length > 2);
+      
+      for (const term of searchTerms) {
+        if (titleWords.includes(term)) {
+          score += 3; // Title matches get high priority
+          hasTitleMatch = true;
+        } else if (contentWords.includes(term)) {
+          score += 1;
+        }
+      }
+      
+      if (score > maxScore) {
+        maxScore = score;
+        bestArticle = art;
+        titleMatched = hasTitleMatch;
+      }
     }
-
+    
+    // Auto-resolve (confidence 0.95) if a knowledge-base article matches strongly and has a title word match
+    if (bestArticle && maxScore >= 3 && titleMatched) {
+      const reply = `Dear ${studentName},\n\nThank you for contacting Code with Mosh Support.\n\n${bestArticle.content}\n\nBest regards,\nCode with Mosh Support`;
+      return { suggestedReply: reply, confidence: 0.95 };
+    }
+    
+    // Default fallback mock reply when no specific KB article matches
+    let reply = `Dear ${studentName},\n\nThank you for reaching out to Code with Mosh Support. We have received your request. An agent will review it shortly.\n\nBest regards,\nCode with Mosh Support`;
+    let confidence = 0.5;
     return { suggestedReply: reply, confidence };
   }
 
   try {
-    const systemPrompt = `You are a helpful university support desk agent. Your job is to draft responses to students based ONLY on the provided Knowledge Base articles.
+    const systemPrompt = `You are a helpful customer support agent at Code with Mosh Support. Your job is to draft responses to customers based ONLY on the provided Knowledge Base articles.
     
 Rules:
-1. Address the student by their name: ${studentName}.
-2. Be polite, warm, and helpful.
-2. Rely ONLY on facts directly stated in the provided Knowledge Base articles. If the articles do not contain information to answer the question, state that you do not have that information and set the confidence field to a value below 0.5.
-3. Include a confidence field (0.0 to 1.0) indicating how confident you are that the provided knowledge base articles fully answer the query.
+1. Address the customer by their first name: ${studentName}.
+2. Ensure the response has a professional, warm, customer-friendly tone, and is properly formatted.
+3. Sign the email response with:
+Best regards,
+Code with Mosh Support
+4. Rely ONLY on facts directly stated in the provided Knowledge Base articles. If the articles do not contain information to answer the question, state that you do not have that information and set the confidence field to a value below 0.5.
+5. Include a confidence field (0.0 to 1.0) indicating how confident you are that the provided knowledge base articles fully answer the query.
 
 Provide your output strictly in JSON format:
 {
@@ -353,13 +433,16 @@ const gpt5NanoModel = {
 
     let polishedText = originalDraft;
     
-    // Apply polite, professional university HelpDesk styling
+    // Apply polite, professional Code with Mosh Support styling
     if (!polishedText.toLowerCase().includes('dear') && !polishedText.toLowerCase().includes('hello')) {
       polishedText = `Dear ${studentName},\n\n${polishedText}`;
     }
     
+    // Replace old signatures if present
+    polishedText = polishedText.replace(/HelpDesk Support Team/gi, 'Code with Mosh Support');
+    
     if (!polishedText.toLowerCase().includes('regards') && !polishedText.toLowerCase().includes('sincerely')) {
-      polishedText = `${polishedText}\n\nBest regards,\nHelpDesk Support Team`;
+      polishedText = `${polishedText}\n\nBest regards,\nCode with Mosh Support`;
     }
 
     // Append the signature indicating it was polished by GPT-5 Nano
