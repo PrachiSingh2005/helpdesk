@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import { rateLimit } from 'express-rate-limit';
 import { config } from './config';
 import { authMiddleware } from './middleware/auth';
+import { initQueue, stopQueue } from './services/queue';
 
 // Router imports
 import authRoutes from './routes/auth';
@@ -75,4 +76,17 @@ app.listen(PORT, () => {
   
   // Start local SMTP server for inbound email testing
   startSMTPServer();
+
+  // Start pg-boss background queue
+  initQueue().catch((err) => console.error('Failed to initialize job queue:', err));
 });
+
+// Clean shutdown handlers
+const shutdown = async () => {
+  console.log('Shutting down server...');
+  await stopQueue();
+  process.exit(0);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);

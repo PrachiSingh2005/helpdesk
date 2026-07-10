@@ -177,77 +177,21 @@ export function classifyTicketInBackground(
   messageBody: string,
   studentEmail: string,
   mapping: Record<string, string>,
-  config: { AUTO_REPLY_CONFIDENCE_THRESHOLD: number }
+  config?: { AUTO_REPLY_CONFIDENCE_THRESHOLD: number }
 ): void {
-  // Intentionally NOT awaited — runs detached from the request lifecycle
-  Promise.resolve()
-    .then(async () => {
-      console.log(`[BG] Starting background classification for ticket ${ticketId}`);
-
-      // 1. GPT classification
-      const classification = await gptClassifyTicket(subject, messageBody);
-
-      await prisma.ticket.update({
-        where: { id: ticketId },
-        data: {
-          category: classification.category,
-          aiSummary: classification.summary,
-        },
-      });
-
-      console.log(`[BG] Ticket ${ticketId} classified as ${classification.category}`);
-
-      // 2. AI suggested reply (uses existing Claude/mock path)
-      const aiResult = await generateSuggestedReply(
+  // Dynamically import the queue helper to avoid circular dependency
+  import('./queue')
+    .then(async ({ enqueueClassification }) => {
+      await enqueueClassification({
+        ticketId,
         subject,
-        [{ body: messageBody, sender: 'STUDENT' }],
-        studentEmail
-      );
-
-      await prisma.ticket.update({
-        where: { id: ticketId },
-        data: {
-          aiSuggestedReply: aiResult.suggestedReply,
-          aiConfidence: aiResult.confidence,
-        },
+        messageBody,
+        studentEmail,
+        mapping,
       });
-
-      // 3. Auto-reply if above confidence threshold
-      if (aiResult.confidence >= config.AUTO_REPLY_CONFIDENCE_THRESHOLD) {
-        const { rehydratePII } = await import('./pii');
-        const { sendEmail } = await import('./email');
-
-        const rehydratedReply = rehydratePII(aiResult.suggestedReply, mapping);
-
-        const ticket = await prisma.ticket.findUnique({ where: { id: ticketId } });
-        if (!ticket) return;
-
-        await prisma.message.create({
-          data: {
-            ticketId,
-            sender: MessageSender.SYSTEM_AI,
-            senderEmail: 'ai@helpdesk.edu',
-            body: rehydratedReply,
-          },
-        });
-
-        await prisma.ticket.update({
-          where: { id: ticketId },
-          data: { status: TicketStatus.RESOLVED },
-        });
-
-        await sendEmail({
-          to: studentEmail,
-          subject: `Re: [Ticket #${ticket.ticketNumber}] ${ticket.subject}`,
-          body: rehydratedReply,
-          ticketNumber: ticket.ticketNumber,
-        });
-
-        console.log(`[BG] Auto-reply sent for ticket ${ticketId} (confidence ${aiResult.confidence})`);
-      }
     })
     .catch((err) => {
-      console.error(`[BG] Background classification failed for ticket ${ticketId}:`, err);
+      console.error(`[Queue] Failed to enqueue classification for ticket ${ticketId}:`, err);
     });
 }
 
