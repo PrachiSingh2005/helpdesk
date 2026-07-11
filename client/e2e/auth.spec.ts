@@ -29,7 +29,7 @@ test.describe('HelpDesk E2E Testing Suite - Auth Scenarios & Edge Cases', () => 
 
     // Verify redirection to dashboard
     await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.locator('h1')).toHaveText('Performance Overview');
+    await expect(page.locator('text=Total Tickets')).toBeVisible();
 
     // Verify sidebar shows admin-only tabs
     await expect(page.getByRole('link', { name: 'Manage Agents', exact: true })).toBeVisible();
@@ -53,7 +53,7 @@ test.describe('HelpDesk E2E Testing Suite - Auth Scenarios & Edge Cases', () => 
 
     // Verify redirection to dashboard
     await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.locator('h1')).toHaveText('Performance Overview');
+    await expect(page.locator('text=Total Tickets')).toBeVisible();
 
     // Verify sidebar does NOT show admin-only tabs
     await expect(page.getByRole('link', { name: 'Manage Agents', exact: true })).not.toBeVisible();
@@ -82,7 +82,7 @@ test.describe('HelpDesk E2E Testing Suite - Auth Scenarios & Edge Cases', () => 
 
     // Verify user is still logged in and on the dashboard
     await expect(page).toHaveURL(/\/dashboard/);
-    await expect(page.locator('h1')).toHaveText('Performance Overview');
+    await expect(page.locator('text=Total Tickets')).toBeVisible();
   });
 
   test('5. Logout clears the session and redirects to login', async ({ page }) => {

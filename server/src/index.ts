@@ -5,6 +5,7 @@ import { rateLimit } from 'express-rate-limit';
 import { config } from './config';
 import { authMiddleware } from './middleware/auth';
 import { initQueue, stopQueue } from './services/queue';
+import { prisma } from './db';
 
 // Router imports
 import authRoutes from './routes/auth';
@@ -67,13 +68,122 @@ app.get('/health', (req, res) => {
 const PORT = config.PORT;
 import { startSMTPServer } from './services/smtp';
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`=================================================`);
   console.log(`HelpDesk Backend Services Started Successfully!  `);
   console.log(`Local Access: http://localhost:${PORT}            `);
   console.log(`Cross-Origin Resource Sharing (CORS): ${config.CLIENT_URL}`);
   console.log(`=================================================`);
   
+  // Ensure stored function for dashboard stats exists in the database
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE OR REPLACE FUNCTION get_dashboard_stats()
+      RETURNS JSON AS $$
+      DECLARE
+        result JSON;
+        total_count INT;
+        open_count INT;
+        resolved_count INT;
+        closed_count INT;
+        general_count INT;
+        technical_count INT;
+        refund_count INT;
+        auto_resolved INT;
+        manual_resolved INT;
+        avg_confidence FLOAT;
+        avg_resolution_time_min INT;
+        daily_stats_json JSON;
+      BEGIN
+        -- 1. Total count
+        SELECT COUNT(*)::INT INTO total_count FROM "Ticket";
+
+        -- 2. Status counts
+        SELECT COUNT(*)::INT INTO open_count FROM "Ticket" WHERE "status" = 'OPEN';
+        SELECT COUNT(*)::INT INTO resolved_count FROM "Ticket" WHERE "status" = 'RESOLVED';
+        SELECT COUNT(*)::INT INTO closed_count FROM "Ticket" WHERE "status" = 'CLOSED';
+
+        -- 3. Category counts
+        SELECT COUNT(*)::INT INTO general_count FROM "Ticket" WHERE "category" = 'GENERAL_QUESTION';
+        SELECT COUNT(*)::INT INTO technical_count FROM "Ticket" WHERE "category" = 'TECHNICAL_QUESTION';
+        SELECT COUNT(*)::INT INTO refund_count FROM "Ticket" WHERE "category" = 'REFUND_REQUEST';
+
+        -- 4. Auto vs manual resolved
+        SELECT COUNT(*)::INT INTO auto_resolved
+        FROM "Ticket" t
+        WHERE EXISTS (
+            SELECT 1 FROM "Message" m
+            WHERE m."ticketId" = t."id" AND m."sender" = 'SYSTEM_AI'
+          );
+
+        SELECT COUNT(*)::INT INTO manual_resolved
+        FROM "Ticket" t
+        WHERE EXISTS (
+            SELECT 1 FROM "Message" m
+            WHERE m."ticketId" = t."id" AND m."sender" = 'AGENT'
+          )
+          AND NOT EXISTS (
+            SELECT 1 FROM "Message" m
+            WHERE m."ticketId" = t."id" AND m."sender" = 'SYSTEM_AI'
+          );
+
+        -- 5. Avg confidence
+        SELECT COALESCE(AVG(t."aiConfidence"), 0.0)::FLOAT INTO avg_confidence
+        FROM "Ticket" t
+        WHERE t."aiConfidence" IS NOT NULL;
+
+        -- 6. Avg resolution time in minutes
+        SELECT COALESCE(ROUND(AVG(EXTRACT(EPOCH FROM (t."updatedAt" - t."createdAt")) / 60)), 0)::INT INTO avg_resolution_time_min
+        FROM "Ticket" t
+        WHERE t."status" IN ('RESOLVED', 'CLOSED');
+
+        -- 7. Daily stats for the past 30 days
+        WITH last_30_days AS (
+          SELECT gs::date AS d
+          FROM generate_series(CURRENT_DATE - INTERVAL '29 days', CURRENT_DATE, '1 day'::interval) gs
+        ),
+        daily_counts AS (
+          SELECT t."createdAt"::date AS d, COUNT(*) AS count
+          FROM "Ticket" t
+          WHERE t."createdAt" >= CURRENT_DATE - INTERVAL '29 days'
+          GROUP BY t."createdAt"::date
+        )
+        SELECT json_agg(json_build_object('date', to_char(last_30_days.d, 'YYYY-MM-DD'), 'count', COALESCE(daily_counts.count, 0)::INT) ORDER BY last_30_days.d)
+        INTO daily_stats_json
+        FROM last_30_days
+        LEFT JOIN daily_counts ON last_30_days.d = daily_counts.d;
+
+        -- Build final JSON result
+        result := json_build_object(
+          'totalTickets', total_count,
+          'statusStats', json_build_object(
+            'OPEN', open_count,
+            'RESOLVED', resolved_count,
+            'CLOSED', closed_count
+          ),
+          'categoryStats', json_build_object(
+            'GENERAL_QUESTION', general_count,
+            'TECHNICAL_QUESTION', technical_count,
+            'REFUND_REQUEST', refund_count
+          ),
+          'aiMetrics', json_build_object(
+            'autoResolved', auto_resolved,
+            'manualResolved', manual_resolved,
+            'avgConfidence', avg_confidence,
+            'avgResolutionTimeMin', avg_resolution_time_min
+          ),
+          'dailyStats', daily_stats_json
+        );
+
+        RETURN result;
+      END;
+      $$ LANGUAGE plpgsql;
+    `);
+    console.log('[Database] Stored function get_dashboard_stats() created/updated.');
+  } catch (err) {
+    console.error('Failed to register stored function:', err);
+  }
+
   // Start local SMTP server for inbound email testing
   startSMTPServer();
 

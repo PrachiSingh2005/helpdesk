@@ -46,6 +46,24 @@ async function main() {
     console.log(`Agent account already exists: ${agent.email}`);
   }
 
+  // 2.5 Create AI agent account if it does not exist
+  const aiEmail = 'ai@helpdesk.edu';
+  let aiUser = await prisma.user.findUnique({ where: { email: aiEmail } });
+  
+  if (!aiUser) {
+    const aiPasswordHash = await bcrypt.hash('ai123', 10);
+    aiUser = await prisma.user.create({
+      data: {
+        email: aiEmail,
+        passwordHash: aiPasswordHash,
+        role: Role.AGENT,
+      },
+    });
+    console.log(`Created AI agent account: ${aiUser.email}`);
+  } else {
+    console.log(`AI agent account already exists: ${aiUser.email}`);
+  }
+
   // 3. Create initial KB articles if none exist
   const articleCount = await prisma.kBArticle.count();
   if (articleCount === 0) {

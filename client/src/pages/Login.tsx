@@ -50,39 +50,39 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 relative overflow-hidden">
       {/* Decorative ambient glowing backgrounds */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-violet-600/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-slate-100 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-slate-50 rounded-full blur-[100px] pointer-events-none" />
 
-      <Card className="w-full max-w-md border-slate-800 bg-slate-900/40 backdrop-blur-xl shadow-2xl relative overflow-hidden transition-all duration-300 hover:border-slate-700/50">
+      <Card className="w-full max-w-md border-border bg-card shadow-2xl relative overflow-hidden transition-all duration-300 hover:border-slate-300">
         {/* Top colored accent bar */}
-        <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500" />
+        <div className="absolute top-0 left-0 w-full h-[3px] bg-foreground" />
         
         <CardHeader className="flex flex-col items-center pt-8 pb-4">
-          <div className="p-3 bg-violet-500/10 rounded-2xl mb-4 border border-violet-500/20">
-            <ShieldCheck className="w-10 h-10 text-violet-400" />
+          <div className="p-3 bg-muted rounded-2xl mb-4 border border-border">
+            <ShieldCheck className="w-10 h-10 text-foreground" />
           </div>
-          <CardTitle className="text-3xl font-extrabold tracking-tight text-white">HelpDesk Support</CardTitle>
-          <CardDescription className="text-slate-400 text-sm font-medium mt-1.5">
+          <CardTitle className="text-3xl font-extrabold tracking-tight text-foreground">HelpDesk Support</CardTitle>
+          <CardDescription className="text-muted-foreground text-sm font-medium mt-1.5">
             Agent & Admin Portal Access
           </CardDescription>
         </CardHeader>
 
         <CardContent className="pb-8">
           {error && (
-            <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-red-200 text-sm">
+            <div className="mb-6 p-4 rounded-xl bg-destructive/10 border border-destructive/20 text-red-600 text-sm">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-slate-300 text-xs font-semibold uppercase tracking-wider">
+              <Label htmlFor="email" className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                 Email Address
               </Label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground">
                   <Mail className="w-4 h-4" />
                 </span>
                 <Input
@@ -90,22 +90,22 @@ export const Login: React.FC = () => {
                   type="email"
                   placeholder="agent@helpdesk.edu"
                   {...register('email')}
-                  className={`pl-10 bg-slate-950/50 border-slate-800 text-white placeholder-slate-600 focus-visible:ring-violet-500/20 focus-visible:border-violet-500 ${
+                  className={`pl-10 bg-card border-border text-foreground placeholder-slate-400 focus-visible:ring-slate-200 focus-visible:border-foreground ${
                     errors.email ? 'border-destructive focus-visible:border-destructive' : ''
                   }`}
                 />
               </div>
               {errors.email && (
-                <p className="text-xs text-red-400 font-medium">{errors.email.message}</p>
+                <p className="text-xs text-red-500 font-medium">{errors.email.message}</p>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-300 text-xs font-semibold uppercase tracking-wider">
+              <Label htmlFor="password" className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                 Password
               </Label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-500">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 text-muted-foreground">
                   <Lock className="w-4 h-4" />
                 </span>
                 <Input
@@ -113,20 +113,20 @@ export const Login: React.FC = () => {
                   type="password"
                   placeholder="••••••••"
                   {...register('password')}
-                  className={`pl-10 bg-slate-950/50 border-slate-800 text-white placeholder-slate-600 focus-visible:ring-violet-500/20 focus-visible:border-violet-500 ${
+                  className={`pl-10 bg-card border-border text-foreground placeholder-slate-400 focus-visible:ring-slate-200 focus-visible:border-foreground ${
                     errors.password ? 'border-destructive focus-visible:border-destructive' : ''
                   }`}
                 />
               </div>
               {errors.password && (
-                <p className="text-xs text-red-400 font-medium">{errors.password.message}</p>
+                <p className="text-xs text-red-500 font-medium">{errors.password.message}</p>
               )}
             </div>
 
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-semibold py-6 shadow-lg shadow-indigo-950/50 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+              className="w-full bg-foreground hover:bg-slate-800 text-background font-semibold py-6 shadow-lg shadow-slate-200 transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
             >
               {isSubmitting ? (
                 <>

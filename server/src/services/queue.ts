@@ -108,6 +108,13 @@ export async function initQueue(): Promise<void> {
         });
 
         console.log(`[Queue] Auto-reply sent for ticket ${ticketId} (confidence ${aiResult.confidence})`);
+      } else {
+        // Unassign from AI agent since it couldn't be auto-resolved
+        await prisma.ticket.update({
+          where: { id: ticketId },
+          data: { assignedToId: null },
+        });
+        console.log(`[Queue] Unassigned ticket ${ticketId} from AI agent (confidence ${aiResult.confidence} < threshold)`);
       }
     } catch (error) {
       console.error(`[Queue] Job processing failed for ticket ${ticketId}:`, error);

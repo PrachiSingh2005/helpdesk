@@ -76,7 +76,9 @@ export interface DashboardStats {
     autoResolved: number;
     manualResolved: number;
     avgConfidence: number;
+    avgResolutionTimeMin: number;
   };
+  dailyStats: { date: string; count: number }[];
 }
 
 import axios from 'axios';

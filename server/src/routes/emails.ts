@@ -153,6 +153,8 @@ export async function handleInboundEmail({
 
     const { redactedText, mapping } = redactPII(text);
 
+    const aiAgent = await prisma.user.findUnique({ where: { email: 'ai@helpdesk.edu' } });
+
     // Create the ticket with placeholder defaults — classification happens in the background
     ticket = await prisma.ticket.create({
       data: {
@@ -160,6 +162,7 @@ export async function handleInboundEmail({
         subject,
         category: 'GENERAL_QUESTION',   // placeholder; updated by background job
         aiSummary: null,                  // populated once GPT finishes
+        assignedToId: aiAgent ? aiAgent.id : null,
       },
     });
 

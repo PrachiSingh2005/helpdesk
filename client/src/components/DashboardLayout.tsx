@@ -32,16 +32,16 @@ export const DashboardLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-slate-100 font-sans">
+    <div className="min-h-screen flex bg-background text-foreground font-sans">
       {/* Sidebar Panel */}
-      <aside className="w-64 bg-slate-900/40 border-r border-slate-800/80 flex flex-col backdrop-blur-xl">
-        <div className="p-6 flex items-center gap-3 border-b border-slate-800/80">
-          <div className="p-2 bg-violet-600/10 border border-violet-500/20 rounded-xl">
-            <ShieldAlert className="w-6 h-6 text-violet-400" />
+      <aside className="w-64 bg-card border-r border-border flex flex-col backdrop-blur-xl">
+        <div className="p-6 flex items-center gap-3 border-b border-border">
+          <div className="p-2 bg-muted border border-border rounded-xl">
+            <ShieldAlert className="w-6 h-6 text-foreground" />
           </div>
           <div>
-            <h2 className="font-bold text-white tracking-wide text-sm">HelpDesk Portal</h2>
-            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{user?.role}</span>
+            <h2 className="font-bold text-foreground tracking-wide text-sm">HelpDesk Portal</h2>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{user?.role}</span>
           </div>
         </div>
 
@@ -59,21 +59,21 @@ export const DashboardLayout: React.FC = () => {
                 to={item.path}
                 className={`flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border ${
                   isActive
-                    ? 'bg-violet-600/20 text-violet-300 border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.07)]'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40 border-transparent'
+                    ? 'bg-neutral-100 text-foreground border-border shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted border-transparent'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'text-violet-300' : 'text-slate-400'}`} />
+                <Icon className={`w-5 h-5 ${isActive ? 'text-foreground' : 'text-muted-foreground'}`} />
                 {item.label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-800/80">
+        <div className="p-4 border-t border-border">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-red-300 hover:bg-red-950/20 border border-transparent hover:border-red-500/20 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer"
+            className="w-full flex items-center gap-3 px-4 py-3 text-muted-foreground hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-100 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer"
           >
             <LogOut className="w-5 h-5" />
             Sign Out
@@ -84,42 +84,36 @@ export const DashboardLayout: React.FC = () => {
       {/* Main Panel Viewport */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header Navigation Bar */}
-        <header className="h-16 bg-slate-900/20 border-b border-slate-800/80 flex items-center justify-between px-8 backdrop-blur-md">
+        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-8 backdrop-blur-md">
           <div className="flex items-center gap-4">
-            <Link
-              to="/dashboard"
-              className="text-lg font-bold text-white hover:text-violet-400 transition-colors"
-            >
-              Helpdesk
-            </Link>
-            <h1 className="text-sm font-medium text-slate-500">
-              {location.pathname === '/dashboard'
-                ? 'Performance Overview'
-                : location.pathname.startsWith('/dashboard/tickets')
-                ? 'Ticket Management Queue'
-                : location.pathname.startsWith('/dashboard/kb')
-                ? 'Knowledge Base Editor'
-                : location.pathname.startsWith('/dashboard/agents')
-                ? 'Agent Operations'
-                : location.pathname.startsWith('/dashboard/email-simulator')
-                ? 'Inbound Email Simulator'
-                : location.pathname.startsWith('/users')
-                ? 'Users'
-                : 'Support Dashboard'}
-            </h1>
+            {location.pathname !== '/dashboard' && (
+              <h1 className="text-sm font-medium text-muted-foreground">
+                {location.pathname.startsWith('/dashboard/tickets')
+                  ? 'Ticket Management Queue'
+                  : location.pathname.startsWith('/dashboard/kb')
+                  ? 'Knowledge Base Editor'
+                  : location.pathname.startsWith('/dashboard/agents')
+                  ? 'Agent Operations'
+                  : location.pathname.startsWith('/dashboard/email-simulator')
+                  ? 'Inbound Email Simulator'
+                  : location.pathname.startsWith('/users')
+                  ? 'Users'
+                  : 'Support Dashboard'}
+              </h1>
+            )}
           </div>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-300">
+              <span className="text-xs font-semibold text-foreground">
                 Welcome, {user ? (user.email.split('@')[0].charAt(0).toUpperCase() + user.email.split('@')[0].slice(1)) : ''}
               </span>
-              <span className="text-[10px] uppercase tracking-wider font-extrabold text-violet-400 bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 rounded-full font-sans">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-foreground bg-muted border border-border px-2 py-0.5 rounded-full font-sans">
                 {user?.role}
               </span>
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/20 hover:bg-red-900/30 text-red-400 hover:text-red-300 border border-red-500/20 hover:border-red-500/30 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-neutral-100 text-foreground border border-border rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               Sign Out
@@ -128,8 +122,8 @@ export const DashboardLayout: React.FC = () => {
         </header>
 
         {/* Content Outlet */}
-        <main className="flex-1 p-8 overflow-y-auto bg-slate-950 relative">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.03),transparent_50%)] pointer-events-none" />
+        <main className="flex-1 p-8 overflow-y-auto bg-background relative">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(0,0,0,0.01),transparent_50%)] pointer-events-none" />
           <Outlet />
         </main>
       </div>
