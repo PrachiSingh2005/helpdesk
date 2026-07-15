@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { rateLimit } from 'express-rate-limit';
+import path from 'path';
 import { config } from './config';
 import { authMiddleware } from './middleware/auth';
 import { initQueue, stopQueue } from './services/queue';
@@ -32,9 +33,17 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Standard Middlewares
+const allowedOrigins = [config.CLIENT_URL];
 app.use(
   cors({
-    origin: config.CLIENT_URL,
+    origin: (origin, callback) => {
+      // Allow same-origin requests (origin is undefined) or matches config/railway domain
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.railway.app') || origin === 'null') {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
+    },
     credentials: true, // Crucial for cross-origin session cookies
   })
 );
@@ -54,6 +63,21 @@ app.use('/api/emails', emailRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
 
+// Serve client static assets in production
+if (process.env.NODE_ENV === 'production') {
+  const clientBuildPath = path.join(__dirname, '../../client/dist');
+  app.use(express.static(clientBuildPath));
+  
+  // Catch-all route to serve the single-page app (React Router) index.html
+  app.get('*', (req, res, next) => {
+    // Only serve index.html for page routes (not API or health routes)
+    if (req.path.startsWith('/api') || req.path.startsWith('/health')) {
+      return next();
+    }
+    res.sendFile(path.join(clientBuildPath, 'index.html'));
+  });
+}
+
 
 // Global Error Handler Middleware
 import { errorHandler } from './middleware/error';
@@ -62,6 +86,13 @@ app.use(errorHandler);
 // Server Status / Health Check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    message: 'Backend is running'
+  });
 });
 
 // Start Server

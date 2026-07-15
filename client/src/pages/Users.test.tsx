@@ -142,8 +142,8 @@ describe('Users Component', () => {
     const adminBadge = screen.getByText('admin');
     const agentBadge = screen.getByText('agent');
 
-    expect(adminBadge).toHaveClass('bg-white', 'text-slate-950', 'border', 'border-white');
-    expect(agentBadge).toHaveClass('bg-slate-800', 'text-slate-300', 'border', 'border-slate-700/50');
+    expect(adminBadge).toHaveClass('bg-teal-500/10', 'text-teal-700', 'border-teal-500/20');
+    expect(agentBadge).toHaveClass('bg-slate-500/10', 'text-slate-600', 'border-slate-500/20');
   });
 
   describe('User Creation Modal & Form Validation', () => {

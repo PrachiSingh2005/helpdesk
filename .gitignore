@@ -1,0 +1,19 @@
+# Environment files
+.env
+.env.local
+.env.*
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Production builds
+dist/
+build/
+.vercel/
+
+# Logs and system files
+*.log
+.DS_Store
+.idea/
+.vscode/

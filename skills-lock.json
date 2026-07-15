@@ -7,6 +7,12 @@
       "skillPath": "better-auth/best-practices/SKILL.md",
       "computedHash": "9ab075b5061be2a5f299c10505667345cc1ec76e8de4120901cfd586643e776f"
     },
+    "claude-api": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/claude-api/SKILL.md",
+      "computedHash": "d7848cf69221dc3edce871768ae8dc3914331b4f8af47dd88aa0eedeb29d12c7"
+    },
     "create-auth-skill": {
       "source": "better-auth/skills",
       "sourceType": "github",

@@ -29,21 +29,21 @@ export const UpdateTicket: React.FC<UpdateTicketProps> = ({
   const messages = ticket.messages || [];
 
   return (
-    <div className="w-full md:w-80 flex flex-col gap-5 h-full overflow-y-auto">
+    <div className="w-full md:w-80 flex flex-col gap-5 h-full overflow-y-auto pr-1">
       {/* Ticket attributes */}
-      <div className="bg-slate-900/40 backdrop-blur-xl p-5 rounded-2xl border border-slate-800/80 space-y-4">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800 pb-2">
+      <div className="bg-card p-5 rounded-2xl border border-border space-y-4 shadow-sm">
+        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border pb-2.5">
           Ticket Attributes
         </h3>
 
         <div>
-          <label className="block text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1.5">
+          <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1.5">
             Status
           </label>
           <select
             value={ticket.status}
             onChange={(e) => handleStatusChange(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700/50 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none cursor-pointer focus:border-violet-500 transition-all"
+            className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none cursor-pointer focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 transition-all font-semibold"
           >
             <option value="OPEN">Open</option>
             <option value="RESOLVED">Resolved</option>
@@ -52,13 +52,13 @@ export const UpdateTicket: React.FC<UpdateTicketProps> = ({
         </div>
 
         <div>
-          <label className="block text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1.5">
+          <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1.5">
             Category
           </label>
           <select
             value={ticket.category}
             onChange={(e) => handleCategoryChange(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700/50 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none cursor-pointer focus:border-violet-500 transition-all"
+            className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none cursor-pointer focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 transition-all font-semibold"
           >
             <option value="GENERAL_QUESTION">General Question</option>
             <option value="TECHNICAL_QUESTION">Technical Question</option>
@@ -69,7 +69,7 @@ export const UpdateTicket: React.FC<UpdateTicketProps> = ({
         <div>
           <label
             htmlFor="select-assigned-agent"
-            className="block text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1.5"
+            className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1.5"
           >
             Assigned Agent
           </label>
@@ -77,7 +77,7 @@ export const UpdateTicket: React.FC<UpdateTicketProps> = ({
             id="select-assigned-agent"
             value={ticket.assignedTo?.id || ''}
             onChange={(e) => handleAgentChange(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700/50 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none cursor-pointer focus:border-violet-500 transition-all"
+            className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none cursor-pointer focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 transition-all font-semibold"
           >
             <option value="">Unassigned</option>
             {agents.map((agent) => (
@@ -89,55 +89,56 @@ export const UpdateTicket: React.FC<UpdateTicketProps> = ({
         </div>
 
         {/* Thread stats */}
-        <div className="pt-1 border-t border-slate-800 grid grid-cols-2 gap-3">
-          <div className="bg-slate-900/50 rounded-xl p-3 text-center">
-            <div className="text-lg font-bold text-white">{messages.length}</div>
-            <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mt-0.5">Messages</div>
+        <div className="pt-2 border-t border-border grid grid-cols-2 gap-3">
+          <div className="bg-muted/70 rounded-xl p-3 text-center">
+            <div className="text-xl font-extrabold text-foreground">{messages.length}</div>
+            <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">Messages</div>
           </div>
-          <div className="bg-slate-900/50 rounded-xl p-3 text-center">
-            <div className="text-lg font-bold text-white">
+          <div className="bg-muted/70 rounded-xl p-3 text-center">
+            <div className="text-xl font-extrabold text-foreground">
               {messages.filter((m) => m.sender === 'AGENT').length}
             </div>
-            <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mt-0.5">Replies</div>
+            <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">Replies</div>
           </div>
         </div>
       </div>
 
       {/* AI Summary */}
-      <div className="bg-slate-900/40 backdrop-blur-xl p-5 rounded-2xl border border-slate-800/80">
-        <div className="flex items-center gap-2 border-b border-slate-800 pb-2 mb-3">
-          <Sparkles className="w-4 h-4 text-violet-400" />
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+      <div className="bg-card p-5 rounded-2xl border border-border shadow-sm">
+        <div className="flex items-center gap-2 border-b border-border pb-2.5 mb-3">
+          <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+          <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
             AI Ticket Summary
           </h3>
         </div>
-        <p className="text-xs text-slate-300 leading-relaxed italic">
+        <p className="text-xs text-foreground leading-relaxed italic">
           "{ticket.aiSummary || 'Summary generation is pending or failed.'}"
         </p>
       </div>
 
       {/* AI Suggested Reply */}
       {ticket.aiSuggestedReply && (
-        <div className="bg-slate-900/40 backdrop-blur-xl p-5 rounded-2xl border border-indigo-500/20">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+        <div className="bg-teal-500/5 dark:bg-teal-950/10 p-5 rounded-2xl border border-teal-500/20 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-teal-500 to-cyan-500" />
+          <div className="flex items-center justify-between border-b border-border/60 pb-2.5 mb-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400 animate-pulse" />
+              <h3 className="text-xs font-bold text-foreground uppercase tracking-widest">
                 AI Suggested Reply
               </h3>
             </div>
             {ticket.aiConfidence !== undefined && ticket.aiConfidence !== null && (
-              <span className="text-[10px] text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full font-bold">
+              <span className="text-[10px] text-teal-700 dark:text-teal-300 bg-teal-500/10 border border-teal-500/20 px-2 py-0.5 rounded-full font-bold">
                 {Math.round(ticket.aiConfidence * 100)}% Match
               </span>
             )}
           </div>
-          <p className="text-[11px] text-slate-500 leading-relaxed mb-4">
+          <p className="text-[11px] text-muted-foreground leading-relaxed mb-4 font-medium">
             Claude drafted a response from your Knowledge Base. Review, edit if needed, then send.
           </p>
           <button
             onClick={applyAISuggestion}
-            className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-md transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
+            className="w-full py-2.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold rounded-xl shadow-md shadow-teal-600/10 hover:shadow-teal-600/20 transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
           >
             Apply Suggestion
           </button>
@@ -145,17 +146,17 @@ export const UpdateTicket: React.FC<UpdateTicketProps> = ({
       )}
 
       {/* Student info card */}
-      <div className="bg-slate-900/40 backdrop-blur-xl p-5 rounded-2xl border border-slate-800/80">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800 pb-2 mb-3">
+      <div className="bg-card p-5 rounded-2xl border border-border shadow-sm">
+        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border pb-2.5 mb-3">
           Student
         </h3>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
-            <GraduationCap className="w-4 h-4 text-slate-400" />
+          <div className="w-9 h-9 rounded-full bg-muted border border-border flex items-center justify-center shrink-0">
+            <GraduationCap className="w-4 h-4 text-muted-foreground" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white truncate">{ticket.studentEmail}</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">
+            <p className="text-sm font-semibold text-foreground truncate">{ticket.studentEmail}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
               Opened {new Date(ticket.createdAt).toLocaleDateString(undefined, {
                 month: 'short', day: 'numeric', year: 'numeric',
               })}

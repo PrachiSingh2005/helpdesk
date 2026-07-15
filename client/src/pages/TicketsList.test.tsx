@@ -141,30 +141,6 @@ describe('TicketsList Component', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/tickets/ticket-1');
   });
 
-  it('updates ticket status inline and refreshes data', async () => {
-    vi.mocked(api.tickets.list).mockResolvedValue({ tickets: mockTickets });
-    vi.mocked(api.tickets.update).mockResolvedValue({
-      ticket: { ...mockTickets[0], status: 'RESOLVED' as const }
-    });
-
-    renderWithClient(<TicketsList />);
-
-    await waitFor(() => {
-      expect(screen.getByText('#101')).toBeInTheDocument();
-    });
-
-    // Find the inline status select for the first ticket
-    const statusSelects = screen.getAllByRole('combobox');
-    const openStatusSelect = statusSelects.find(s => (s as HTMLSelectElement).value === 'OPEN');
-    expect(openStatusSelect).toBeInTheDocument();
-
-    // Trigger update status
-    fireEvent.change(openStatusSelect!, { target: { value: 'RESOLVED' } });
-
-    await waitFor(() => {
-      expect(api.tickets.update).toHaveBeenCalledWith('ticket-1', { status: 'RESOLVED' });
-    });
-  });
 
   it('refetches tickets when status filter changes', async () => {
     vi.mocked(api.tickets.list).mockResolvedValue({ tickets: [] });

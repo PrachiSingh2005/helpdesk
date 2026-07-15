@@ -87,21 +87,21 @@ export const Users: React.FC = () => {
     <div className="space-y-6 animate-fadeIn">
       {/* Heading & Actions */}
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white tracking-tight">
+        <h2 className="text-2xl font-bold text-foreground tracking-tight">
           Users
         </h2>
         <button
           onClick={() => {
             setActiveDialog('create');
           }}
-          className="px-4 py-2 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white text-sm font-semibold rounded-xl transition-all shadow-lg hover:shadow-violet-600/25 active:scale-[0.98]"
+          className="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl transition-all shadow-md hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
         >
           Create User
         </button>
       </div>
 
       {errorMessage && (
-        <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-200 text-sm rounded-xl">
+        <div className="p-4 bg-destructive/10 border border-destructive/20 text-red-600 dark:text-red-400 text-sm rounded-xl">
           {errorMessage}
         </div>
       )}
@@ -127,16 +127,16 @@ export const Users: React.FC = () => {
             }
           }}
           aria-label="Modal backdrop"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-fadeIn"
         >
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white">
+          <div className="w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-xl space-y-6">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-lg font-bold text-foreground">
                 {selectedUser ? 'Edit User' : 'Create New User'}
               </h3>
               <button
                 onClick={handleCloseModal}
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 aria-label="Close modal"
               >
                 ✕
@@ -144,7 +144,7 @@ export const Users: React.FC = () => {
             </div>
 
             {submitError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-200 text-sm rounded-xl">
+              <div className="p-3 bg-destructive/10 border border-destructive/20 text-red-600 dark:text-red-400 text-xs rounded-xl">
                 {submitError}
               </div>
             )}
@@ -167,16 +167,16 @@ export const Users: React.FC = () => {
             }
           }}
           aria-label="Delete confirmation backdrop"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-fadeIn"
         >
-          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white">
+          <div className="w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-xl space-y-6">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="text-lg font-bold text-foreground">
                 Confirm Deletion
               </h3>
               <button
                 onClick={handleCloseDeleteModal}
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
                 aria-label="Close delete modal"
               >
                 ✕
@@ -184,21 +184,21 @@ export const Users: React.FC = () => {
             </div>
 
             {deleteError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-200 text-sm rounded-xl">
+              <div className="p-3 bg-destructive/10 border border-destructive/20 text-red-600 dark:text-red-400 text-xs rounded-xl">
                 {deleteError}
               </div>
             )}
 
             <div className="space-y-4">
-              <p className="text-sm text-slate-300">
-                Are you sure you want to delete user <span className="font-semibold text-white">{userToDelete.name}</span>? This action will disable their account.
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to delete user <span className="font-bold text-foreground">{userToDelete.name}</span>? This action will disable their account.
               </p>
 
               <div className="flex justify-end space-x-3 pt-2">
                 <button
                   type="button"
                   onClick={handleCloseDeleteModal}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all"
+                  className="px-4 py-2 bg-secondary hover:bg-teal-500/10 hover:text-teal-600 dark:hover:text-teal-400 border border-border text-foreground text-xs font-semibold rounded-xl transition-all cursor-pointer"
                   disabled={isDeleting}
                 >
                   Cancel
@@ -206,7 +206,7 @@ export const Users: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleDeleteConfirm}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-750 text-white rounded-xl font-semibold transition-all flex items-center justify-center"
+                  className="px-4 py-2 bg-destructive hover:bg-destructive/90 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center cursor-pointer"
                   disabled={isDeleting}
                 >
                   {isDeleting ? 'Deleting...' : 'Confirm Delete'}

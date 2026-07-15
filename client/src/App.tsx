@@ -56,11 +56,14 @@ const ProtectedRoute: React.FC<{ allowedRoles?: Array<Role> }> = ({
   return <Outlet />;
 };
 
+import { ThemeProvider } from './context/ThemeContext';
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
           <Routes>
             {/* Public login route */}
             <Route path="/login" element={<Login />} />
@@ -92,6 +95,7 @@ export default function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

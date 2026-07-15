@@ -1,12 +1,119 @@
 import { Role, TicketStatus, TicketCategory, MessageSender } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 import { prisma } from '../src/db';
 
 dotenv.config();
 
-
 async function main() {
+  const dumpPath = path.join(__dirname, 'dump.json');
+  if (fs.existsSync(dumpPath)) {
+    console.log('Restoring database from dump.json...');
+    const data = JSON.parse(fs.readFileSync(dumpPath, 'utf8'));
+
+    // Clear existing data in correct dependency order
+    console.log('Clearing existing database tables...');
+    await prisma.message.deleteMany();
+    await prisma.ticket.deleteMany();
+    await prisma.kBArticle.deleteMany();
+    await prisma.session.deleteMany();
+    await prisma.user.deleteMany();
+
+    // 1. Restore Users
+    console.log(`Restoring ${data.users.length} users...`);
+    for (const user of data.users) {
+      await prisma.user.create({
+        data: {
+          id: user.id,
+          email: user.email,
+          passwordHash: user.passwordHash,
+          role: user.role,
+          deletedAt: user.deletedAt ? new Date(user.deletedAt) : null,
+          createdAt: new Date(user.createdAt),
+          updatedAt: new Date(user.updatedAt),
+        },
+      });
+    }
+
+    // 2. Restore Sessions
+    console.log(`Restoring ${data.sessions.length} sessions...`);
+    for (const session of data.sessions) {
+      await prisma.session.create({
+        data: {
+          id: session.id,
+          sid: session.sid,
+          userId: session.userId,
+          expiresAt: new Date(session.expiresAt),
+          createdAt: new Date(session.createdAt),
+        },
+      });
+    }
+
+    // 3. Restore KB Articles
+    console.log(`Restoring ${data.kbArticles.length} KB articles...`);
+    for (const article of data.kbArticles) {
+      await prisma.kBArticle.create({
+        data: {
+          id: article.id,
+          title: article.title,
+          content: article.content,
+          authorId: article.authorId,
+          createdAt: new Date(article.createdAt),
+          updatedAt: new Date(article.updatedAt),
+        },
+      });
+    }
+
+    // 4. Restore Tickets
+    console.log(`Restoring ${data.tickets.length} tickets...`);
+    for (const ticket of data.tickets) {
+      await prisma.ticket.create({
+        data: {
+          id: ticket.id,
+          ticketNumber: ticket.ticketNumber,
+          studentEmail: ticket.studentEmail,
+          subject: ticket.subject,
+          status: ticket.status,
+          category: ticket.category,
+          aiSummary: ticket.aiSummary,
+          aiSuggestedReply: ticket.aiSuggestedReply,
+          aiConfidence: ticket.aiConfidence,
+          assignedToId: ticket.assignedToId,
+          createdAt: new Date(ticket.createdAt),
+          updatedAt: new Date(ticket.updatedAt),
+        },
+      });
+    }
+
+    // Reset ticketNumber sequence to prevent key collisions
+    if (data.tickets.length > 0) {
+      await prisma.$executeRawUnsafe(`
+        SELECT setval(pg_get_serial_sequence('"Ticket"', 'ticketNumber'), COALESCE(MAX("ticketNumber"), 1)) FROM "Ticket"
+      `);
+    }
+
+    // 5. Restore Messages
+    console.log(`Restoring ${data.messages.length} messages...`);
+    for (const msg of data.messages) {
+      await prisma.message.create({
+        data: {
+          id: msg.id,
+          ticketId: msg.ticketId,
+          sender: msg.sender,
+          senderEmail: msg.senderEmail,
+          body: msg.body,
+          messageId: msg.messageId,
+          createdAt: new Date(msg.createdAt),
+        },
+      });
+    }
+
+    console.log('Database restore completed successfully!');
+    return;
+  }
+
   console.log('Seeding database...');
 
   // 1. Create default admin account if it does not exist

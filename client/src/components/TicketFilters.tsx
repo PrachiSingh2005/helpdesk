@@ -9,7 +9,7 @@ const FilterLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 );
 
 const selectCls =
-  'w-full bg-slate-900/60 border border-slate-700/50 rounded-xl px-3 py-2 text-sm text-slate-300 focus:outline-none cursor-pointer focus:border-violet-500 transition-all font-semibold';
+  'w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none cursor-pointer focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 transition-all font-semibold';
 
 interface TicketFiltersProps {
   status: string;
@@ -52,32 +52,32 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
     <aside className="w-64 shrink-0 space-y-4 sticky top-6">
       {/* Sidebar header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-slate-300 font-bold text-sm">
-          <SlidersHorizontal className="w-4 h-4 text-violet-400" />
+        <div className="flex items-center gap-2 text-foreground font-bold text-sm">
+          <SlidersHorizontal className="w-4 h-4 text-teal-600 dark:text-teal-400" />
           Filters
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={() => fetchTickets()}
             title="Refresh"
-            className="p-1.5 bg-slate-900/50 hover:bg-slate-800/80 border border-slate-700/50 rounded-lg transition-all cursor-pointer"
+            className="p-1.5 bg-card hover:bg-secondary border border-border rounded-lg transition-all cursor-pointer"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-slate-400 hover:text-slate-200" />
+            <RefreshCw className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" />
           </button>
           {hasActiveFilters && (
             <button
               onClick={handleClearFilters}
               title="Clear all filters"
-              className="p-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg transition-all cursor-pointer"
+              className="p-1.5 bg-destructive/10 hover:bg-destructive/20 border border-destructive/20 rounded-lg transition-all cursor-pointer"
             >
-              <X className="w-3.5 h-3.5 text-red-400" />
+              <X className="w-3.5 h-3.5 text-destructive" />
             </button>
           )}
         </div>
       </div>
 
       {/* Filter card */}
-      <div className="bg-slate-900/40 border border-slate-800/80 backdrop-blur-xl rounded-2xl p-4 space-y-5">
+      <div className="bg-card border border-border rounded-2xl p-4 space-y-5 shadow-sm">
         {/* Status */}
         <div className="space-y-1.5">
           <FilterLabel>Status</FilterLabel>
@@ -89,10 +89,10 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
             }}
             className={selectCls}
           >
-            <option value="" className="bg-slate-900">All Statuses</option>
-            <option value="OPEN" className="bg-slate-900">Open</option>
-            <option value="RESOLVED" className="bg-slate-900">Resolved</option>
-            <option value="CLOSED" className="bg-slate-900">Closed</option>
+            <option value="" className="bg-card text-foreground">All Statuses</option>
+            <option value="OPEN" className="bg-card text-foreground">Open</option>
+            <option value="RESOLVED" className="bg-card text-foreground">Resolved</option>
+            <option value="CLOSED" className="bg-card text-foreground">Closed</option>
           </select>
         </div>
 
@@ -107,10 +107,10 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
             }}
             className={selectCls}
           >
-            <option value="" className="bg-slate-900">All Categories</option>
-            <option value="GENERAL_QUESTION" className="bg-slate-900">General Question</option>
-            <option value="TECHNICAL_QUESTION" className="bg-slate-900">Technical Question</option>
-            <option value="REFUND_REQUEST" className="bg-slate-900">Refund Request</option>
+            <option value="" className="bg-card text-foreground">All Categories</option>
+            <option value="GENERAL_QUESTION" className="bg-card text-foreground">General Question</option>
+            <option value="TECHNICAL_QUESTION" className="bg-card text-foreground">Technical Question</option>
+            <option value="REFUND_REQUEST" className="bg-card text-foreground">Refund Request</option>
           </select>
         </div>
 
@@ -123,16 +123,16 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
             className={selectCls}
           >
             {dropdownVal === '' && (
-              <option value="" disabled className="bg-slate-900">Custom Sort</option>
+              <option value="" disabled className="bg-card text-foreground">Custom Sort</option>
             )}
-            <option value="newest" className="bg-slate-900">Newest First</option>
-            <option value="oldest" className="bg-slate-900">Oldest First</option>
-            <option value="updated" className="bg-slate-900">Last Updated</option>
+            <option value="newest" className="bg-card text-foreground">Newest First</option>
+            <option value="oldest" className="bg-card text-foreground">Oldest First</option>
+            <option value="updated" className="bg-card text-foreground">Last Updated</option>
           </select>
         </div>
 
         {/* Divider */}
-        <div className="border-t border-slate-800/60 pt-1">
+        <div className="border-t border-border/60 pt-1">
           <FilterLabel>Advanced</FilterLabel>
         </div>
 
@@ -148,7 +148,7 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
               setStudentEmail(e.target.value);
               setPage(1);
             }}
-            className="w-full bg-slate-900/60 border border-slate-700/50 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-all"
+            className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 transition-all"
           />
         </div>
 
@@ -166,9 +166,9 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
             }}
             className={selectCls}
           >
-            <option value="all" className="bg-slate-900">All Confidences</option>
-            <option value="high" className="bg-slate-900">High Confidence (≥ 85%)</option>
-            <option value="low" className="bg-slate-900">Needs Review (&lt; 85%)</option>
+            <option value="all" className="bg-card text-foreground">All Confidences</option>
+            <option value="high" className="bg-card text-foreground">High Confidence (≥ 85%)</option>
+            <option value="low" className="bg-card text-foreground">Needs Review (&lt; 85%)</option>
           </select>
         </div>
 
@@ -186,10 +186,10 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
             }}
             className={selectCls}
           >
-            <option value="all" className="bg-slate-900">All Time</option>
-            <option value="today" className="bg-slate-900">Past 24 Hours</option>
-            <option value="week" className="bg-slate-900">Past 7 Days</option>
-            <option value="month" className="bg-slate-900">Past 30 Days</option>
+            <option value="all" className="bg-card text-foreground">All Time</option>
+            <option value="today" className="bg-card text-foreground">Past 24 Hours</option>
+            <option value="week" className="bg-card text-foreground">Past 7 Days</option>
+            <option value="month" className="bg-card text-foreground">Past 30 Days</option>
           </select>
         </div>
 
@@ -198,7 +198,7 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
           <div className="pt-1">
             <button
               onClick={handleClearFilters}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-red-400 hover:text-red-300 bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 rounded-xl transition-all cursor-pointer"
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-destructive hover:text-white bg-destructive/10 hover:bg-destructive/80 border border-destructive/20 rounded-xl transition-all cursor-pointer"
             >
               <X className="w-3 h-3" />
               Clear All Filters

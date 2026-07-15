@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import multer from 'multer';
+import { simpleParser } from 'mailparser';
 import { prisma } from '../db';
 import { TicketStatus, MessageSender, TicketCategory } from '@prisma/client';
 import { redactPII, rehydratePII } from '../services/pii';
@@ -7,11 +9,20 @@ import { sendEmail } from '../services/email';
 import { config } from '../config';
 
 const router = Router();
+const upload = multer();
 
 // Helper to parse email address from headers e.g. "Jane Doe <jane@student.edu>"
 function parseEmailAddress(fromHeader: string): string {
   const match = fromHeader.match(/<([^>]+)>/);
-  return match ? match[1].trim() : fromHeader.trim();
+  if (match) {
+    return match[1].trim();
+  }
+  // Extract first substring that matches an email format if no brackets are present
+  const emailMatch = fromHeader.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  if (emailMatch) {
+    return emailMatch[0].trim();
+  }
+  return fromHeader.trim();
 }
 
 /**
@@ -19,18 +30,31 @@ function parseEmailAddress(fromHeader: string): string {
  * applies PII redaction, runs AI classification/summary/replies, and
  * auto-replies if the AI is confident.
  */
-export async function handleInboundEmail({
-  from,
-  subject,
-  text,
-  headers,
-}: {
-  from: string;
-  subject: string;
-  text: string;
+export async function handleInboundEmail(params: {
+  from?: string;
+  subject?: string;
+  text?: string;
   headers?: any;
+  rawMime?: string | Buffer;
 }) {
+  let { from = '', subject = '(No Subject)', text = '', headers } = params;
+
+  if (params.rawMime) {
+    const parsed = await simpleParser(params.rawMime);
+    from = parsed.from?.text || from;
+    subject = parsed.subject || subject;
+    text = parsed.text || parsed.html || text;
+    const messageId = parsed.messageId;
+    if (messageId) {
+      headers = `Message-ID: <${messageId}>`;
+    }
+  }
+
   const studentEmail = parseEmailAddress(from);
+
+  if (!studentEmail || !studentEmail.includes('@')) {
+    throw new Error('A valid sender email address is required.');
+  }
 
   // Extract Message-ID from headers to support email thread reply structures
   let messageId: string | null = null;
@@ -196,18 +220,32 @@ export async function handleInboundEmail({
 /**
  * Inbound webhook handler route.
  */
-router.post('/inbound', async (req, res) => {
-  const { from, subject, text, headers } = req.body;
-
-  if (!from || !subject || !text) {
-    return res.status(400).json({ error: 'Missing required email fields (from, subject, text)' });
-  }
-
+router.post('/inbound', upload.any(), async (req, res) => {
   try {
-    const ticket = await handleInboundEmail({ from, subject, text, headers });
+    // Check if raw email MIME is sent as a file upload named 'email' or a text field
+    const files = req.files as any[] | undefined;
+    const emailFile = files?.find((f) => f.fieldname === 'email');
+    const rawMime = emailFile ? emailFile.buffer : req.body.email;
+
+    let ticket;
+    if (rawMime) {
+      console.log('[INBOUND WEBHOOK] Processing raw email MIME using mailparser');
+      ticket = await handleInboundEmail({ rawMime });
+    } else {
+      console.log('[INBOUND WEBHOOK] Processing parsed email fields from req.body');
+      const { from, subject, text, headers } = req.body;
+      if (!from || !subject || !text) {
+        return res.status(400).json({ error: 'Missing required email fields (from, subject, text)' });
+      }
+      ticket = await handleInboundEmail({ from, subject, text, headers });
+    }
+
     return res.status(200).json({ success: true, ticketId: ticket.id });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Inbound webhook route error:', error);
+    if (error.message && error.message.includes('sender email')) {
+      return res.status(400).json({ error: error.message });
+    }
     return res.status(500).json({ error: 'Internal server error processing inbound email.' });
   }
 });

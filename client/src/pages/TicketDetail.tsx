@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
-import type { Ticket, Message } from '../utils/api';
+import type { Ticket } from '../utils/api';
 import { TicketDetails } from '../components/TicketDetails';
 import { ReplyThread } from '../components/ReplyThread';
 import { UpdateTicket } from '../components/UpdateTicket';
@@ -185,29 +185,29 @@ export const TicketDetail: React.FC = () => {
     <div className="h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-6 animate-fadeIn">
 
       {/* ── Left column: Thread + Compose ─────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 h-full bg-slate-900/20 rounded-2xl border border-slate-800/80 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-full bg-card rounded-2xl border border-border shadow-md overflow-hidden">
 
         {/* Thread header */}
-        <div className="shrink-0 px-5 py-4 bg-slate-900/50 border-b border-slate-800/80 flex items-center justify-between gap-4">
+        <div className="shrink-0 px-5 py-4 bg-muted/50 border-b border-border flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => navigate('/dashboard/tickets')}
-              className="shrink-0 flex items-center gap-1.5 text-slate-400 hover:text-slate-200 text-xs font-semibold cursor-pointer border border-transparent hover:border-slate-700 hover:bg-slate-900 px-2.5 py-1.5 rounded-lg transition-all"
+              className="shrink-0 flex items-center gap-1.5 text-muted-foreground hover:text-teal-600 dark:hover:text-teal-400 text-xs font-semibold cursor-pointer border border-border hover:border-teal-500/25 hover:bg-teal-500/5 px-2.5 py-1.5 rounded-xl transition-all shadow-sm bg-card"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               Queue
             </button>
-            <div className="w-px h-4 bg-slate-700" />
+            <div className="w-px h-4 bg-border" />
             <div className="flex items-center gap-2 min-w-0">
-              <MessageSquare className="shrink-0 w-4 h-4 text-violet-400" />
-              <h2 className="text-sm font-bold text-white truncate">{ticket.subject}</h2>
+              <MessageSquare className="shrink-0 w-4 h-4 text-teal-600 dark:text-teal-400" />
+              <h2 className="text-sm font-bold text-foreground truncate">{ticket.subject}</h2>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${statusColor}`}>
               {ticket.status}
             </span>
-            <span className="text-[10px] text-slate-500 font-semibold">
+            <span className="text-[10px] text-muted-foreground font-semibold">
               #{ticket.ticketNumber}
             </span>
           </div>
@@ -227,12 +227,12 @@ export const TicketDetail: React.FC = () => {
               type="button"
               onClick={handleSummarize}
               disabled={isSummarizing || messages.length === 0}
-              className="flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-xs font-semibold bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 disabled:opacity-40 disabled:pointer-events-none px-4 py-2 rounded-xl transition-all cursor-pointer"
+              className="flex items-center gap-2 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 text-xs font-semibold bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/20 disabled:opacity-40 disabled:pointer-events-none px-4 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm hover:scale-[1.01] active:scale-[0.99]"
             >
               {isSummarizing ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <Loader2 className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400 animate-spin" />
               ) : (
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
               )}
               {isSummarizing ? 'Summarizing…' : ticketSummary ? 'Regenerate Summary' : 'Summarize Conversation'}
             </button>
@@ -240,13 +240,14 @@ export const TicketDetail: React.FC = () => {
 
           {/* ── Inline summary panel ─────────────────────────────────────── */}
           {ticketSummary && (
-            <div className="bg-indigo-950/40 border border-indigo-500/20 rounded-2xl p-4 space-y-2 animate-fadeIn">
-              <div className="flex items-center gap-2 pb-1.5 border-b border-indigo-500/15">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="text-[11px] font-bold text-indigo-300 uppercase tracking-widest">AI Conversation Summary</span>
+            <div className="bg-teal-500/5 dark:bg-teal-950/10 border border-teal-500/20 rounded-2xl p-4 space-y-2 animate-fadeIn relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-teal-500 to-cyan-500" />
+              <div className="flex items-center gap-2 pb-1.5 border-b border-teal-500/15">
+                <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
+                <span className="text-[11px] font-bold text-teal-700 dark:text-teal-400 uppercase tracking-widest">AI Conversation Summary</span>
               </div>
               <div
-                className="prose prose-sm prose-invert max-w-none text-slate-300 text-xs leading-relaxed"
+                className="prose prose-sm prose-invert max-w-none text-foreground font-medium text-xs leading-relaxed"
                 dangerouslySetInnerHTML={{
                   __html: DOMPurify.sanitize(marked.parse(ticketSummary) as string),
                 }}
@@ -259,7 +260,7 @@ export const TicketDetail: React.FC = () => {
         </div>
 
         {/* ── Compose footer ─────────────────────────────────────────────── */}
-        <div className="shrink-0 bg-slate-900/50 border-t border-slate-800/80 p-4">
+        <div className="shrink-0 bg-muted/40 border-t border-border p-4">
           <form onSubmit={handleSendReply} className="space-y-3">
             <div className="relative">
               <textarea
@@ -267,11 +268,11 @@ export const TicketDetail: React.FC = () => {
                 value={replyBody}
                 onChange={(e) => setReplyBody(e.target.value)}
                 placeholder="Draft your reply to the student…"
-                className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-4 py-3 pr-16 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-violet-500/70 transition-all resize-none leading-relaxed"
+                className="w-full bg-card border border-border rounded-xl px-4 py-3 pr-16 text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 transition-all resize-none leading-relaxed shadow-inner"
               />
               {/* Character count badge */}
               {charCount > 0 && (
-                <span className="absolute bottom-3 right-3 text-[10px] font-semibold text-slate-600">
+                <span className="absolute bottom-3 right-3 text-[10px] font-semibold text-muted-foreground/60">
                   {charCount}
                 </span>
               )}
@@ -283,7 +284,7 @@ export const TicketDetail: React.FC = () => {
                 <button
                   type="button"
                   onClick={applyAISuggestion}
-                  className="flex items-center gap-2 text-violet-400 hover:text-violet-300 text-xs font-semibold bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/20 px-3.5 py-2 rounded-xl transition-all cursor-pointer"
+                  className="flex items-center gap-2 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 text-xs font-semibold bg-teal-500/10 hover:bg-teal-500/20 border border-teal-500/20 px-3.5 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   Insert AI Suggestion
@@ -298,12 +299,12 @@ export const TicketDetail: React.FC = () => {
                   type="button"
                   onClick={handlePolishReply}
                   disabled={isSubmitting || isPolishing || !replyBody.trim()}
-                  className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-slate-200 hover:text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-slate-700/60 shadow-md transition-all cursor-pointer disabled:pointer-events-none"
+                  className="flex items-center gap-2 bg-secondary hover:bg-secondary/80 disabled:opacity-40 text-foreground text-xs font-bold px-4 py-2.5 rounded-xl border border-border shadow-md transition-all cursor-pointer disabled:pointer-events-none hover:scale-[1.01] active:scale-[0.99]"
                 >
                   {isPolishing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin text-teal-600 dark:text-teal-400" />
                   ) : (
-                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" />
                   )}
                   {isPolishing ? 'Polishing…' : 'Polish'}
                 </button>
@@ -312,7 +313,7 @@ export const TicketDetail: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting || isPolishing || !replyBody.trim()}
-                  className="flex items-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 disabled:from-slate-700 disabled:to-slate-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none hover:scale-[1.01] active:scale-[0.99]"
+                  className="flex items-center gap-2 bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-500 hover:to-cyan-500 disabled:from-slate-500 disabled:to-slate-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg shadow-teal-500/10 hover:shadow-teal-500/25 transition-all cursor-pointer disabled:opacity-50 disabled:pointer-events-none hover:scale-[1.01] active:scale-[0.99]"
                 >
                   {isSubmitting ? (
                     <Loader2 className="w-4 h-4 animate-spin" />

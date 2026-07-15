@@ -8,6 +8,8 @@
     "core"
   ],
   "scripts": {
+    "build": "bun --cwd client run build && bun --cwd server run prisma generate",
+    "start": "bun --cwd server run start",
     "test:e2e": "bun --cwd=client run test:e2e"
   }
 }
