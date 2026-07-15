@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "prebuild": "npx tsc -p ../core",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
@@ -25,7 +26,7 @@
     "axios": "^1.18.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "core": "workspace:*",
+    "core": "file:../core",
     "dompurify": "^3.4.11",
     "lucide-react": "^1.23.0",
     "marked": "^18.0.5",

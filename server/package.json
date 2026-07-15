@@ -19,7 +19,7 @@
     "bcryptjs": "^2.4.3",
     "better-auth": "^1.6.23",
     "cookie-parser": "^1.4.6",
-    "core": "workspace:*",
+    "core": "file:../core",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
