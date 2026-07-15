@@ -85,6 +85,7 @@ import axios from 'axios';
 
 // Create an axios instance configured with withCredentials to support database session cookies
 const axiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -102,7 +103,31 @@ async function request<T>(path: string, options: any = {}): Promise<T> {
     });
     return response.data;
   } catch (error: any) {
-    const errMsg = error.response?.data?.error || error.message || 'API request failed';
+    let errMsg = 'API request failed';
+    
+    if (error.response?.data) {
+      const data = error.response.data;
+      if (typeof data === 'string') {
+        errMsg = data;
+      } else if (typeof data === 'object' && data !== null) {
+        // Look for error message properties in typical JSON responses
+        const candidate = data.error || data.message || data.err;
+        if (candidate) {
+          if (typeof candidate === 'string') {
+            errMsg = candidate;
+          } else if (typeof candidate === 'object' && candidate !== null) {
+            errMsg = candidate.message || JSON.stringify(candidate);
+          } else {
+            errMsg = String(candidate);
+          }
+        } else {
+          errMsg = JSON.stringify(data);
+        }
+      }
+    } else if (error.message) {
+      errMsg = error.message;
+    }
+    
     throw new Error(errMsg);
   }
 }
