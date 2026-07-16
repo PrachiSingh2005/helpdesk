@@ -487,7 +487,7 @@ Draft to polish:
 ${draft}`;
 
   const { text } = await generateText({
-    model: gpt5NanoModel,
+    model: gpt5NanoModel as any,
     prompt,
   });
 

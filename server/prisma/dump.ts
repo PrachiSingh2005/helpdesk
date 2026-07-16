@@ -1,5 +1,13 @@
-const sourceDbUrl = 'postgresql://postgres:1234@localhost:5432/helpdesk?schema=public';
-process.env.DATABASE_URL = sourceDbUrl;
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+const sourceDbUrl = process.env.DATABASE_URL;
+if (!sourceDbUrl) {
+  console.error('Error: DATABASE_URL environment variable is not defined.');
+  process.exit(1);
+}
 
 import { prisma } from '../src/db';
 import fs from 'fs';

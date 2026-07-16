@@ -38,7 +38,7 @@ app.use(
   cors({
     origin: (origin, callback) => {
       // Allow same-origin requests (origin is undefined) or matches config/railway domain
-      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.railway.app') || origin === 'null') {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.railway.app') || origin.endsWith('.vercel.app') || origin === 'null') {
         callback(null, true);
       } else {
         callback(new Error(`Origin ${origin} not allowed by CORS`));
