@@ -11,15 +11,19 @@ COPY server/package.json server/bun.lock* ./server/
 
 # Install dependencies for all workspaces
 RUN bun install --frozen-lockfile
-RUN bun install --cwd client
 
 # Copy the rest of the application files
 COPY core/ ./core/
 COPY client/ ./client/
 COPY server/ ./server/
 
-# Build core, then build client static assets, and generate Prisma client
+# Build core first
 RUN bun run --cwd core build
+
+# Install client dependencies now that core is built
+RUN bun install --cwd client
+
+# Build client static assets, and generate Prisma client
 RUN bun run --cwd client build
 RUN bun --cwd server prisma generate
 
