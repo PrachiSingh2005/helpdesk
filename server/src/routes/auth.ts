@@ -41,7 +41,7 @@ router.post('/login', async (req, res) => {
     res.cookie('sid', sessionToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       expires: expiresAt,
     });
 
@@ -61,9 +61,14 @@ router.post('/login', async (req, res) => {
 // Logout route
 router.post('/logout', async (req, res) => {
   const sid = req.cookies?.sid || req.headers['x-session-id'];
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+  };
 
   if (!sid || typeof sid !== 'string') {
-    res.clearCookie('sid');
+    res.clearCookie('sid', cookieOptions);
     return res.json({ message: 'Logged out successfully.' });
   }
 
@@ -73,7 +78,7 @@ router.post('/logout', async (req, res) => {
       where: { sid },
     });
 
-    res.clearCookie('sid');
+    res.clearCookie('sid', cookieOptions);
     return res.json({ message: 'Logged out successfully.' });
   } catch (error) {
     console.error('Logout route error:', error);

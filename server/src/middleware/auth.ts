@@ -43,17 +43,23 @@ export async function authMiddleware(req: Request, res: Response, next: NextFunc
       return next();
     }
 
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+    };
+
     // Validate expiration
     if (new Date() > session.expiresAt) {
       await prisma.session.delete({ where: { id: session.id } });
-      res.clearCookie('sid');
+      res.clearCookie('sid', cookieOptions);
       return next();
     }
 
     // Check soft deletion
     if (session.user.deletedAt !== null) {
       await prisma.session.delete({ where: { id: session.id } });
-      res.clearCookie('sid');
+      res.clearCookie('sid', cookieOptions);
       return next();
     }
 
