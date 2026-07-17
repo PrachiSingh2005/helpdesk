@@ -6,11 +6,12 @@ WORKDIR /app
 # Copy root config and lockfiles
 COPY package.json bun.lock ./
 COPY core/package.json ./core/
-COPY client/package.json ./client/
-COPY server/package.json ./server/
+COPY client/package.json client/bun.lock* ./client/
+COPY server/package.json server/bun.lock* ./server/
 
 # Install dependencies for all workspaces
 RUN bun install --frozen-lockfile
+RUN bun install --cwd client --frozen-lockfile
 
 # Copy the rest of the application files
 COPY core/ ./core/
