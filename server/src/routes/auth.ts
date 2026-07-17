@@ -51,6 +51,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         role: user.role,
       },
+      token: sessionToken,
     });
   } catch (error) {
     console.error('Login route error:', error);

@@ -92,6 +92,19 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
+// Add a request interceptor to add x-session-id header dynamically
+axiosInstance.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('session_token');
+    if (token) {
+      config.headers['x-session-id'] = token;
+    }
+  }
+  return config;
+}, (error) => {
+  return Promise.reject(error);
+});
+
 // API client wrapper for relative API calls using Axios
 async function request<T>(path: string, options: any = {}): Promise<T> {
   try {
@@ -136,7 +149,7 @@ async function request<T>(path: string, options: any = {}): Promise<T> {
 export const api = {
   auth: {
     login: (credentials: { email: string; password: string }) =>
-      request<{ user: User }>('/api/auth/login', {
+      request<{ user: User; token: string }>('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify(credentials),
       }),

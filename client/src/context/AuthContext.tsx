@@ -21,6 +21,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await api.auth.me();
       setUser(data.user);
     } catch {
+      localStorage.removeItem('session_token');
       setUser(null);
     } finally {
       setLoading(false);
@@ -33,12 +34,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (credentials: { email: string; password: string }) => {
     const data = await api.auth.login(credentials);
+    localStorage.setItem('session_token', data.token);
     setUser(data.user);
   };
 
   const logout = async () => {
-    await api.auth.logout();
-    setUser(null);
+    try {
+      await api.auth.logout();
+    } finally {
+      localStorage.removeItem('session_token');
+      setUser(null);
+    }
   };
 
   return (
