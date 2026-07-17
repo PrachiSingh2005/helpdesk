@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
+import { GoogleGenAI } from '@google/genai';
 import { config } from '../config';
 import { prisma } from '../db';
 import { TicketCategory, TicketStatus, MessageSender } from '@prisma/client';
@@ -13,11 +13,11 @@ if (config.ANTHROPIC_API_KEY && config.ANTHROPIC_API_KEY !== 'your-anthropic-api
   console.warn('WARNING: ANTHROPIC_API_KEY is not configured. AI operations will use mock/fallback responses.');
 }
 
-let openaiClient: OpenAI | null = null;
-if (config.OPENAI_API_KEY && config.OPENAI_API_KEY !== '') {
-  openaiClient = new OpenAI({ apiKey: config.OPENAI_API_KEY });
+let geminiClient: GoogleGenAI | null = null;
+if (config.GEMINI_API_KEY && config.GEMINI_API_KEY !== '') {
+  geminiClient = new GoogleGenAI({ apiKey: config.GEMINI_API_KEY });
 } else {
-  console.warn('WARNING: OPENAI_API_KEY is not configured. GPT classification will use keyword fallback.');
+  console.warn('WARNING: GEMINI_API_KEY is not configured. Gemini classification will use keyword fallback.');
 }
 
 export interface ClassificationResult {
@@ -100,9 +100,9 @@ Output your response strictly as a JSON object, with no formatting or other text
 }
 
 /**
- * Classifies a ticket using GPT (gpt-4o-mini) via the OpenAI API.
- * Falls back to keyword-based heuristics if OPENAI_API_KEY is not configured
- * OR if the API call fails (e.g. quota exceeded).
+ * Classifies a ticket using Gemini (gemini-2.5-flash) via the Google Gemini API.
+ * Falls back to keyword-based heuristics if GEMINI_API_KEY is not configured
+ * OR if the API call fails.
  */
 export async function gptClassifyTicket(
   subject: string,
@@ -110,7 +110,7 @@ export async function gptClassifyTicket(
 ): Promise<ClassificationResult> {
   const lowerBody = (body + ' ' + subject).toLowerCase();
 
-  // Shared keyword fallback — used when GPT is unavailable or fails
+  // Shared keyword fallback — used when Gemini is unavailable or fails
   function keywordFallback(): ClassificationResult {
     let category: TicketCategory = TicketCategory.GENERAL_QUESTION;
     if (lowerBody.includes('refund') || lowerBody.includes('money') || lowerBody.includes('billing')) {
@@ -124,32 +124,34 @@ export async function gptClassifyTicket(
     };
   }
 
-  if (!openaiClient) {
-    console.log('[GPT] OpenAI not configured — using keyword fallback classifier.');
+  if (!geminiClient) {
+    console.log('[Gemini] Gemini not configured — using keyword fallback classifier.');
     return keywordFallback();
   }
 
   try {
-    const completion = await openaiClient.chat.completions.create({
-      model: 'gpt-4o-mini',
-      temperature: 0,
-      max_tokens: 200,
-      response_format: { type: 'json_object' },
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a university support desk coordinator. Classify the ticket and write a 1-2 sentence summary. ' +
-            'Return ONLY a JSON object with keys "category" (one of GENERAL_QUESTION, TECHNICAL_QUESTION, REFUND_REQUEST) and "summary".',
+    const response = await geminiClient.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: `Subject: "${subject}"\nBody: "${body}"`,
+      config: {
+        systemInstruction:
+          'You are a university support desk coordinator. Classify the ticket and write a 1-2 sentence summary. ' +
+          'Return ONLY a JSON object with keys "category" (one of GENERAL_QUESTION, TECHNICAL_QUESTION, REFUND_REQUEST) and "summary".',
+        temperature: 0,
+        maxOutputTokens: 200,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'object',
+          properties: {
+            category: { type: 'string' },
+            summary: { type: 'string' },
+          },
+          required: ['category', 'summary'],
         },
-        {
-          role: 'user',
-          content: `Subject: "${subject}"\nBody: "${body}"`,
-        },
-      ],
+      },
     });
 
-    const raw = completion.choices[0]?.message?.content ?? '{}';
+    const raw = response.text || '{}';
     const result = JSON.parse(raw);
     const validCategories = Object.values(TicketCategory) as string[];
     return {
@@ -159,7 +161,7 @@ export async function gptClassifyTicket(
       summary: result.summary || 'Summary generation failed.',
     };
   } catch (error: any) {
-    console.error(`[GPT] Classification API error (${error?.status ?? 'unknown'}) — falling back to keyword classifier.`);
+    console.error(`[Gemini] Classification API error — falling back to keyword classifier:`, error);
     return keywordFallback();
   }
 }
