@@ -19,6 +19,7 @@ COPY server/ ./server/
 
 # Build core first
 RUN bun run --cwd core build
+RUN bun install
 
 # Install client dependencies now that core is built
 RUN bun install --cwd client
