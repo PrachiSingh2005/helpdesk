@@ -11,7 +11,7 @@ COPY server/package.json server/bun.lock* ./server/
 
 # Install dependencies for all workspaces
 RUN bun install --frozen-lockfile
-RUN bun install --cwd client --frozen-lockfile
+RUN bun install --cwd client
 
 # Copy the rest of the application files
 COPY core/ ./core/
