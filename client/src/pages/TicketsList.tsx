@@ -175,34 +175,68 @@ export const TicketsList: React.FC = () => {
         cell: ({ row }) => {
           const t = row.original;
           return (
-            <div className="flex flex-col sm:flex-row gap-2">
-              <span
-                className={`inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-xl border ${
-                  t.status === 'OPEN'
-                    ? 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5'
-                    : t.status === 'RESOLVED'
-                    ? 'text-teal-600 dark:text-teal-400 border-teal-500/20 bg-teal-500/5'
-                    : 'text-muted-foreground border-border bg-muted/30'
-                }`}
-              >
-                {t.status.charAt(0).toUpperCase() + t.status.slice(1).toLowerCase()}
-              </span>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex gap-1.5">
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-xl border ${
+                    t.status === 'OPEN'
+                      ? 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5'
+                      : t.status === 'RESOLVED'
+                      ? 'text-teal-600 dark:text-teal-400 border-teal-500/20 bg-teal-500/5'
+                      : 'text-muted-foreground border-border bg-muted/30'
+                  }`}
+                >
+                  {t.status.charAt(0).toUpperCase() + t.status.slice(1).toLowerCase()}
+                </span>
 
-              <span
-                className={`inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-xl border ${
-                  t.category === 'GENERAL_QUESTION'
-                    ? 'text-blue-600 dark:text-blue-400 border-blue-500/20 bg-blue-500/5'
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 text-xs font-bold rounded-xl border ${
+                    t.category === 'GENERAL_QUESTION'
+                      ? 'text-blue-600 dark:text-blue-400 border-blue-500/20 bg-blue-500/5'
+                      : t.category === 'TECHNICAL_QUESTION'
+                      ? 'text-purple-600 dark:text-purple-400 border-purple-500/20 bg-purple-500/5'
+                      : 'text-pink-600 dark:text-pink-400 border-pink-500/20 bg-pink-500/5'
+                  }`}
+                >
+                  {t.category === 'GENERAL_QUESTION'
+                    ? 'General'
                     : t.category === 'TECHNICAL_QUESTION'
-                    ? 'text-purple-600 dark:text-purple-400 border-purple-500/20 bg-purple-500/5'
-                    : 'text-pink-600 dark:text-pink-400 border-pink-500/20 bg-pink-500/5'
-                }`}
-              >
-                {t.category === 'GENERAL_QUESTION'
-                  ? 'General'
-                  : t.category === 'TECHNICAL_QUESTION'
-                  ? 'Technical'
-                  : 'Refund'}
-              </span>
+                    ? 'Technical'
+                    : 'Refund'}
+                </span>
+              </div>
+
+              <div className="flex gap-1.5">
+                {t.priority && (
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-lg border ${
+                      t.priority === 'URGENT'
+                        ? 'text-rose-600 dark:text-rose-400 border-rose-500/20 bg-rose-500/5'
+                        : t.priority === 'HIGH'
+                        ? 'text-orange-600 dark:text-orange-400 border-orange-500/20 bg-orange-500/5'
+                        : t.priority === 'MEDIUM'
+                        ? 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5'
+                        : 'text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/5'
+                    }`}
+                  >
+                    {t.priority}
+                  </span>
+                )}
+
+                {t.sentiment && (
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-lg border ${
+                      t.sentiment === 'POSITIVE'
+                        ? 'text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/5'
+                        : t.sentiment === 'NEGATIVE'
+                        ? 'text-rose-600 dark:text-rose-400 border-rose-500/20 bg-rose-500/5'
+                        : 'text-muted-foreground border-border bg-muted/30'
+                    }`}
+                  >
+                    {t.sentiment === 'POSITIVE' ? '😊 Positive' : t.sentiment === 'NEGATIVE' ? '😠 Negative' : '😐 Neutral'}
+                  </span>
+                )}
+              </div>
             </div>
           );
         },
@@ -218,7 +252,7 @@ export const TicketsList: React.FC = () => {
               <div className="flex items-center gap-1.5 mb-1">
                 <Sparkles className="w-3.5 h-3.5 text-teal-600 dark:text-teal-400" />
                 <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold uppercase tracking-wider">
-                  Claude Summary
+                  AI Summary
                 </span>
                 {t.aiConfidence !== undefined && t.aiConfidence !== null && (
                   <span className="text-[10px] text-muted-foreground font-semibold">

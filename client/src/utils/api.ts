@@ -41,6 +41,10 @@ export interface Ticket {
   subject: string;
   status: TicketStatus;
   category: TicketCategory;
+  priority?: string;
+  sentiment?: string;
+  gmailThreadId?: string;
+  lastActivity?: string;
   aiSummary?: string;
   aiSuggestedReply?: string;
   aiConfidence?: number;
@@ -213,7 +217,7 @@ export const api = {
       }>(`/api/tickets?${query.toString()}`);
     },
     get: (id: string) => request<{ ticket: Ticket }>(`/api/tickets/${id}`),
-    update: (id: string, updates: { status?: string; category?: string; assignedToId?: string | null }) =>
+    update: (id: string, updates: { status?: string; category?: string; assignedToId?: string | null; priority?: string; sentiment?: string }) =>
       request<{ ticket: Ticket }>(`/api/tickets/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(updates),
@@ -289,4 +293,21 @@ export const api = {
         body: JSON.stringify(data),
       }),
   },
+  settings: {
+    get: () => request<{ settings: SystemSettings }>('/api/settings'),
+    update: (data: Partial<SystemSettings>) =>
+      request<{ settings: SystemSettings; message: string }>('/api/settings', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+  },
 };
+
+export interface SystemSettings {
+  aiAutoRepliesEnabled: boolean;
+  confidenceThreshold: number;
+  maxAutoRepliesPerTicket: number;
+  workingHoursStart: string;
+  workingHoursEnd: string;
+  fallbackToHumanAgent: boolean;
+}

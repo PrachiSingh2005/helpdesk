@@ -136,34 +136,43 @@ const agentReplies = [
 ];
 
 async function seedDiverseTickets() {
-  console.log('Seeding 100 diverse tickets...');
+  console.log('Seeding 100 diverse tickets using bulk insert...');
 
-  // Delete all existing tickets to prevent collision and start fresh
-  const deleteCount = await prisma.ticket.deleteMany({});
-  console.log(`Deleted ${deleteCount.count} existing tickets to ensure clean state.`);
+  // 1. Delete existing data
+  await prisma.message.deleteMany({});
+  await prisma.ticket.deleteMany({});
+
+  // 2. Reset sequence
+  await prisma.$executeRawUnsafe(`
+    SELECT setval(pg_get_serial_sequence('"Ticket"', 'ticketNumber'), 1, false);
+  `);
+
+  const aiUser = await prisma.user.findUnique({ where: { email: 'ai@helpdesk.edu' } });
+  const agentUser = await prisma.user.findUnique({ where: { email: 'agent@helpdesk.edu' } });
 
   const statuses = [TicketStatus.OPEN, TicketStatus.RESOLVED, TicketStatus.CLOSED];
   const categories = [TicketCategory.TECHNICAL_QUESTION, TicketCategory.REFUND_REQUEST, TicketCategory.GENERAL_QUESTION];
 
-  // Helper to generate a random date in the last 30 days
-  const randomDate = (startDaysAgo: number, endDaysAgo: number) => {
-    const start = new Date();
-    start.setDate(start.getDate() - startDaysAgo);
-    const end = new Date();
-    end.setDate(end.getDate() - endDaysAgo);
-    return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-  };
+  const TOTAL_TICKETS = 100;
+  const now = new Date();
 
-  const ticketsData = [];
+  const ticketsToCreate: any[] = [];
+  const messagesToCreate: any[] = [];
 
-  for (let i = 1; i <= 100; i++) {
-    // Determine category
+  for (let i = 1; i <= TOTAL_TICKETS; i++) {
+    const ticketId = crypto.randomUUID();
     const category = categories[i % categories.length];
 
-    // Determine status (mostly resolved/closed for older, open for newer)
-    let status = statuses[i % statuses.length];
-    
-    // Choose template based on category
+    let status: TicketStatus;
+    const randStatus = Math.random();
+    if (randStatus < 0.35) {
+      status = TicketStatus.OPEN;
+    } else if (randStatus < 0.80) {
+      status = TicketStatus.RESOLVED;
+    } else {
+      status = TicketStatus.CLOSED;
+    }
+
     let template;
     if (category === TicketCategory.TECHNICAL_QUESTION) {
       template = technicalTemplates[i % technicalTemplates.length];
@@ -173,20 +182,42 @@ async function seedDiverseTickets() {
       template = generalTemplates[i % generalTemplates.length];
     }
 
-    // Generate random student name and email
     const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
     const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
     const domain = domains[Math.floor(Math.random() * domains.length)];
     const studentEmail = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${domain}`;
 
-    // Timestamps
-    const createdDate = randomDate(30, 0);
-    const updatedDate = new Date(createdDate.getTime() + Math.random() * (new Date().getTime() - createdDate.getTime()));
+    // Uniformly distribute tickets over past 29 days up to TODAY (now)
+    const daysAgo = 29 * (1 - (i - 1) / (TOTAL_TICKETS - 1));
+    const createdDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000 + Math.random() * 3600000);
 
-    // AI confidence variation
     const aiConfidence = Math.max(0.40, Math.min(1.0, template.aiConfidence + (Math.random() * 0.1 - 0.05)));
 
-    ticketsData.push({
+    let assignedToId: string | null = null;
+    let updatedDate = createdDate;
+
+    const isResolvedOrClosed = status === TicketStatus.RESOLVED || status === TicketStatus.CLOSED;
+    const isAIResolved = isResolvedOrClosed && (aiConfidence >= 0.85 || Math.random() < 0.4);
+
+    if (isResolvedOrClosed) {
+      if (isAIResolved) {
+        assignedToId = aiUser ? aiUser.id : null;
+        const delay = 1 + Math.random() * 4;
+        updatedDate = new Date(createdDate.getTime() + delay * 60 * 1000);
+      } else {
+        assignedToId = agentUser ? agentUser.id : null;
+        const delay = 30 + Math.random() * 150;
+        updatedDate = new Date(createdDate.getTime() + delay * 60 * 1000);
+      }
+    } else {
+      if (Math.random() < 0.3 && agentUser) {
+        assignedToId = agentUser.id;
+      }
+    }
+
+    ticketsToCreate.push({
+      id: ticketId,
+      ticketNumber: i,
       studentEmail,
       subject: `${template.subject} (Case #${i})`,
       status,
@@ -194,79 +225,58 @@ async function seedDiverseTickets() {
       aiSummary: template.aiSummary,
       aiSuggestedReply: template.aiSuggestedReply,
       aiConfidence: parseFloat(aiConfidence.toFixed(2)),
+      assignedToId,
       createdAt: createdDate,
       updatedAt: updatedDate,
+    });
+
+    // 1. Initial student message
+    messagesToCreate.push({
+      id: crypto.randomUUID(),
+      ticketId,
+      sender: MessageSender.STUDENT,
+      senderEmail: studentEmail,
       body: template.body,
-    });
-  }
-
-  // Insert tickets and their messages
-  for (const t of ticketsData) {
-    const createdTicket = await prisma.ticket.create({
-      data: {
-        studentEmail: t.studentEmail,
-        subject: t.subject,
-        status: t.status,
-        category: t.category,
-        aiSummary: t.aiSummary,
-        aiSuggestedReply: t.aiSuggestedReply,
-        aiConfidence: t.aiConfidence,
-        createdAt: t.createdAt,
-        updatedAt: t.updatedAt,
-      },
+      createdAt: createdDate,
     });
 
-    // Create the initial student message
-    await prisma.message.create({
-      data: {
-        ticketId: createdTicket.id,
-        sender: MessageSender.STUDENT,
-        senderEmail: t.studentEmail,
-        body: t.body,
-        createdAt: t.createdAt,
-      },
+    // 2. AI acknowledgment message
+    const aiMsgDate = new Date(createdDate.getTime() + 1000 * 30);
+    messagesToCreate.push({
+      id: crypto.randomUUID(),
+      ticketId,
+      sender: MessageSender.SYSTEM_AI,
+      senderEmail: 'ai@helpdesk.edu',
+      body: isAIResolved
+        ? `[AI Resolution]: ${template.aiSuggestedReply}`
+        : `[AI Assistant]: We have received your inquiry regarding "${template.subject}". An agent will review it shortly.`,
+      createdAt: aiMsgDate,
     });
 
-    // Create follow-up agent/AI message for RESOLVED/CLOSED tickets
-    if (t.status === TicketStatus.RESOLVED || t.status === TicketStatus.CLOSED) {
-      // 70% chance of agent reply, 30% system AI
-      const isAgent = Math.random() > 0.3;
-      const responseSender = isAgent ? MessageSender.AGENT : MessageSender.SYSTEM_AI;
-      const responseEmail = isAgent ? 'agent@helpdesk.edu' : 'ai-assistant@helpdesk.edu';
-      const responseBody = isAgent 
-        ? agentReplies[Math.floor(Math.random() * agentReplies.length)]
-        : `[AI suggested resolution]: ${t.aiSuggestedReply}`;
-
-      const replyDate = new Date(t.createdAt.getTime() + (1000 * 60 * 5) + Math.random() * (1000 * 60 * 60 * 4)); // 5 mins to 4 hours later
-
-      await prisma.message.create({
-        data: {
-          ticketId: createdTicket.id,
-          sender: responseSender,
-          senderEmail: responseEmail,
-          body: responseBody,
-          createdAt: replyDate,
-        },
+    // 3. Agent response if human-resolved
+    if (isResolvedOrClosed && !isAIResolved) {
+      messagesToCreate.push({
+        id: crypto.randomUUID(),
+        ticketId,
+        sender: MessageSender.AGENT,
+        senderEmail: 'agent@helpdesk.edu',
+        body: agentReplies[Math.floor(Math.random() * agentReplies.length)],
+        createdAt: updatedDate,
       });
-
-      // If closed, add closing note or acknowledgement
-      if (t.status === TicketStatus.CLOSED && Math.random() > 0.5) {
-        const closedDate = new Date(replyDate.getTime() + (1000 * 60 * 60) + Math.random() * (1000 * 60 * 60 * 24)); // 1 to 24 hours later
-        await prisma.message.create({
-          data: {
-            ticketId: createdTicket.id,
-            sender: MessageSender.STUDENT,
-            senderEmail: t.studentEmail,
-            body: 'Thank you! The issue is resolved, please close the ticket.',
-            createdAt: closedDate,
-          },
-        });
-      }
     }
   }
 
+  // Bulk create all tickets and messages
+  await prisma.ticket.createMany({ data: ticketsToCreate });
+  await prisma.message.createMany({ data: messagesToCreate });
+
+  // Update sequence to max ticketNumber
+  await prisma.$executeRawUnsafe(`
+    SELECT setval(pg_get_serial_sequence('"Ticket"', 'ticketNumber'), ${TOTAL_TICKETS}) FROM "Ticket"
+  `);
+
   const finalCount = await prisma.ticket.count();
-  console.log(`Successfully generated and seeded ${finalCount} diverse tickets.`);
+  console.log(`Successfully generated and bulk-seeded ${finalCount} diverse tickets.`);
 }
 
 seedDiverseTickets()
@@ -277,3 +287,4 @@ seedDiverseTickets()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

@@ -35,14 +35,28 @@ model Ticket {
   subject          String
   status           TicketStatus   @default(OPEN)
   category         TicketCategory @default(GENERAL_QUESTION)
+  priority         String?        @default("MEDIUM")
+  sentiment        String?
+  gmailThreadId    String?
   aiSummary        String?
   aiSuggestedReply String?
   aiConfidence     Float?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  lastActivity     DateTime       @default(now())
   assignedToId     String?
   messages         Message[]
   assignedTo       User?          @relation(fields: [assignedToId], references: [id])
+}
+
+model Settings {
+  id                      String   @id @default("settings-global")
+  aiAutoRepliesEnabled    Boolean  @default(true)
+  confidenceThreshold     Float    @default(0.90)
+  maxAutoRepliesPerTicket Int      @default(3)
+  workingHoursStart       String   @default("09:00")
+  workingHoursEnd         String   @default("17:00")
+  fallbackToHumanAgent    Boolean  @default(true)
 }
 
 model Message {

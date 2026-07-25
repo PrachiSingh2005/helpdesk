@@ -164,7 +164,7 @@
   }
 }
 
-/* Custom modern animations */
+/* Custom modern chart & dashboard animations */
 @keyframes pulseGlow {
   0%, 100% {
     opacity: 0.4;
@@ -176,6 +176,64 @@
   }
 }
 
+@keyframes barGrow {
+  0% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+    opacity: 0;
+  }
+  100% {
+    transform: scaleY(1);
+    transform-origin: bottom;
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes floatBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes pulseDot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(1.25);
+  }
+}
+
 .animate-pulseGlow {
   animation: pulseGlow 4s infinite ease-in-out;
+}
+
+.animate-barGrow {
+  animation: barGrow 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-shimmer {
+  animation: shimmer 2.5s infinite linear;
+}
+
+.animate-float {
+  animation: floatBounce 2s infinite ease-in-out;
+}
+
+.animate-pulseDot {
+  animation: pulseDot 2s infinite ease-in-out;
 }

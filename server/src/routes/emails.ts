@@ -4,8 +4,8 @@ import { simpleParser } from 'mailparser';
 import { prisma } from '../db';
 import { TicketStatus, MessageSender, TicketCategory } from '@prisma/client';
 import { redactPII, rehydratePII } from '../services/pii';
-import { generateSuggestedReply, classifyTicketInBackground } from '../services/ai';
-import { sendEmail } from '../services/email';
+import { classifyTicketInBackground } from '../services/ai';
+import { sendEmail, verifySmtpConnection, isSmtpConfigured, sendAutoAcknowledgementEmail } from '../services/email';
 import { config } from '../config';
 
 const router = Router();
@@ -51,6 +51,7 @@ export async function handleInboundEmail(params: {
   }
 
   const studentEmail = parseEmailAddress(from);
+  console.log('✓ Email received');
 
   if (!studentEmail || !studentEmail.includes('@')) {
     throw new Error('A valid sender email address is required.');
@@ -96,12 +97,15 @@ export async function handleInboundEmail(params: {
     console.log(`[INBOUND PROCESSING] Threading reply to existing Ticket #${ticket.ticketNumber}`);
 
     // Re-open ticket if it was resolved or closed
+    const updateData: any = { lastActivity: new Date() };
     if (ticket.status !== TicketStatus.OPEN) {
-      await prisma.ticket.update({
-        where: { id: ticket.id },
-        data: { status: TicketStatus.OPEN },
-      });
+      updateData.status = TicketStatus.OPEN;
     }
+
+    await prisma.ticket.update({
+      where: { id: ticket.id },
+      data: updateData,
+    });
 
     // Save the student's message reply in DB
     await prisma.message.create({
@@ -114,69 +118,24 @@ export async function handleInboundEmail(params: {
       },
     });
 
-    // Retrieve full updated message list for prompt history context
-    const updatedTicket = await prisma.ticket.findUnique({
-      where: { id: ticket.id },
-      include: { messages: { orderBy: { createdAt: 'asc' } } },
-    });
-
-    const messageHistory = (updatedTicket?.messages || []).map((m) => ({
-      body: m.body,
-      sender: m.sender,
-    }));
-
     // Redact PII before sending text to AI API
     const { redactedText, mapping } = redactPII(text);
 
-    // Generate the suggested response from Claude using KB search context
-    const aiResult = await generateSuggestedReply(ticket.subject, messageHistory, ticket.studentEmail);
-
-    // Update the ticket record with the latest AI draft and confidence score
-    await prisma.ticket.update({
-      where: { id: ticket.id },
-      data: {
-        aiSuggestedReply: aiResult.suggestedReply,
-        aiConfidence: aiResult.confidence,
-      },
-    });
-
-    // Auto-respond if confidence score is above threshold
-    if (aiResult.confidence >= config.AUTO_REPLY_CONFIDENCE_THRESHOLD) {
-      const rehydratedReply = rehydratePII(aiResult.suggestedReply, mapping);
-
-      // Store the automated response in database messages
-      await prisma.message.create({
-        data: {
-          ticketId: ticket.id,
-          sender: MessageSender.SYSTEM_AI,
-          senderEmail: 'ai@helpdesk.edu',
-          body: rehydratedReply,
-        },
-      });
-
-      // Set status to RESOLVED
-      await prisma.ticket.update({
-        where: { id: ticket.id },
-        data: { status: TicketStatus.RESOLVED },
-      });
-
-      // Send email back to student
-      await sendEmail({
-        to: studentEmail,
-        subject: `Re: [Ticket #${ticket.ticketNumber}] ${ticket.subject}`,
-        body: rehydratedReply,
-        ticketNumber: ticket.ticketNumber,
-        inReplyTo: messageId || undefined,
-      });
-
-      console.log(`[INBOUND PROCESSING] Automatically sent high-confidence AI response for Ticket #${ticket.ticketNumber}`);
-    }
+    // Fire background AI classification and auto-reply pipeline
+    classifyTicketInBackground(
+      ticket.id,
+      ticket.subject,
+      redactedText,
+      studentEmail,
+      mapping,
+      undefined,
+      messageId  // inReplyTo: thread AI reply back into same Gmail conversation
+    );
   } else {
-    // New inquiry — create the ticket immediately so the caller gets a fast response
+    // New inquiry
     console.log(`[INBOUND PROCESSING] Creating a new ticket for student: ${studentEmail}`);
 
     const { redactedText, mapping } = redactPII(text);
-
     const aiAgent = await prisma.user.findUnique({ where: { email: 'ai@helpdesk.edu' } });
 
     // Create the ticket with placeholder defaults — classification happens in the background
@@ -184,11 +143,13 @@ export async function handleInboundEmail(params: {
       data: {
         studentEmail,
         subject,
-        category: 'GENERAL_QUESTION',   // placeholder; updated by background job
-        aiSummary: null,                  // populated once GPT finishes
+        category: 'GENERAL_QUESTION',
+        priority: 'MEDIUM',
         assignedToId: aiAgent ? aiAgent.id : null,
+        lastActivity: new Date(),
       },
     });
+    console.log('✓ Ticket created');
 
     // Persist the initial student message
     await prisma.message.create({
@@ -201,16 +162,15 @@ export async function handleInboundEmail(params: {
       },
     });
 
-    console.log(`[INBOUND PROCESSING] Ticket #${ticket.ticketNumber} created — GPT classification queued in background`);
-
-    // 🔥 Fire-and-forget: GPT classification + suggested reply + optional auto-reply
+    // Fire background AI classification — AI reply IS the first response (no generic ack)
     classifyTicketInBackground(
       ticket.id,
       subject,
       redactedText,
       studentEmail,
       mapping,
-      config
+      undefined,
+      messageId  // inReplyTo: ensures AI reply appears in same Gmail thread
     );
   }
 
@@ -240,13 +200,60 @@ router.post('/inbound', upload.any(), async (req, res) => {
       ticket = await handleInboundEmail({ from, subject, text, headers });
     }
 
-    return res.status(200).json({ success: true, ticketId: ticket.id });
+    return res.status(200).json({ success: true, ticketId: ticket.id, ticketNumber: ticket.ticketNumber });
   } catch (error: any) {
     console.error('Inbound webhook route error:', error);
     if (error.message && error.message.includes('sender email')) {
       return res.status(400).json({ error: error.message });
     }
     return res.status(500).json({ error: 'Internal server error processing inbound email.' });
+  }
+});
+
+/**
+ * Route to test the SMTP connection and send a test email.
+ * GET /api/emails/test-smtp
+ */
+router.get('/test-smtp', async (req, res) => {
+  try {
+    const isWorking = await verifySmtpConnection();
+    const recipient = (req.query.to as string) || config.EMAIL_FROM;
+
+    if (!isSmtpConfigured) {
+      return res.status(400).json({
+        success: false,
+        message: 'SMTP credentials are not configured in environment variables.',
+        isSmtpConfigured,
+      });
+    }
+
+    if (!isWorking) {
+      return res.status(500).json({
+        success: false,
+        message: 'SMTP connection verification failed. Check credentials/logs.',
+        isSmtpConfigured,
+      });
+    }
+
+    // Try sending a test email
+    await sendEmail({
+      to: recipient,
+      subject: 'HelpDesk SMTP Integration Test',
+      body: `Hello! This is a test email sent from the HelpDesk system at ${new Date().toISOString()} to confirm SMTP configurations.`,
+      ticketNumber: 0,
+    });
+
+    return res.json({
+      success: true,
+      message: `SMTP connection is healthy and test email has been sent to ${recipient}.`,
+      isSmtpConfigured,
+    });
+  } catch (error: any) {
+    console.error('SMTP test route error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Internal server error during SMTP test.',
+    });
   }
 });
 

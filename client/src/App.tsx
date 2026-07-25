@@ -10,6 +10,7 @@ import { KBManager } from './pages/KBManager';
 import { AgentManager } from './pages/AgentManager';
 import { Users } from './pages/Users';
 import { EmailSimulator } from './pages/EmailSimulator';
+import { Settings } from './pages/Settings';
 import { Loader2 } from 'lucide-react';
 import { Role } from './utils/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -79,6 +80,9 @@ export default function App() {
                 {/* Admin only subroute */}
                 <Route path="agents" element={<ProtectedRoute allowedRoles={[Role.ADMIN]} />}>
                   <Route index element={<AgentManager />} />
+                </Route>
+                <Route path="settings" element={<ProtectedRoute allowedRoles={[Role.ADMIN]} />}>
+                  <Route index element={<Settings />} />
                 </Route>
               </Route>
             </Route>

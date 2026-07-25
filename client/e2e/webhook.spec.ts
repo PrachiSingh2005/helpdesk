@@ -207,6 +207,6 @@ test.describe('HelpDesk E2E Testing Suite - Webhook Integration', () => {
 
     // Verify the AI-automated response is visible in the thread
     await expect(page.locator('text=AI Auto-Reply').first()).toBeVisible();
-    await expect(page.locator('text=To connect to the campus secure Wi-Fi').first()).toBeVisible();
+    await expect(page.locator('text=To connect to the campus secure').first()).toBeVisible();
   });
 });

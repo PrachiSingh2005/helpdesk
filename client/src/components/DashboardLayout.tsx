@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Ticket, BookOpen, Users, LogOut, ShieldAlert, UserCog, Mail, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, Ticket, BookOpen, Users, LogOut, ShieldAlert, UserCog, Mail, Sun, Moon, Settings as SettingsIcon } from 'lucide-react';
 import { Role } from '../utils/api';
 import { useTheme } from '../context/ThemeContext';
 
@@ -31,6 +31,7 @@ export const DashboardLayout: React.FC = () => {
   if (user?.role === Role.ADMIN) {
     navItems.push({ label: 'Manage Agents', path: '/dashboard/agents', icon: Users });
     navItems.push({ label: 'Users', path: '/users', icon: UserCog });
+    navItems.push({ label: 'Admin Settings', path: '/dashboard/settings', icon: SettingsIcon });
   }
 
   return (

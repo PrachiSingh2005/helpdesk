@@ -5,6 +5,7 @@ import { createUserSchema, updateUserSchema } from 'core';
 import { prisma } from '../db';
 import { requireRole } from '../middleware/auth';
 import { asyncHandler } from '../utils/asyncHandler';
+import { sendWelcomeEmail } from '../services/email';
 
 const router = Router();
 
@@ -76,6 +77,9 @@ router.post(
         createdAt: true,
       },
     });
+
+    // Send welcome email containing agent credentials
+    await sendWelcomeEmail(email, name, password);
 
     // For display, generate the name from the email split, or use the provided name in response
     return res.status(201).json({

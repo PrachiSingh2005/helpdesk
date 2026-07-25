@@ -3,7 +3,7 @@ import { prisma } from '../db';
 import { requireAuth } from '../middleware/auth';
 import { MessageSender } from '@prisma/client';
 import { TicketStatus, TicketCategory } from 'core';
-import { sendEmail } from '../services/email';
+import { sendEmail, sendTicketAssignmentEmail, sendTicketStatusUpdateEmail, sendTicketClosedEmail } from '../services/email';
 import { polishReply, summarizeTicket } from '../services/ai';
 import { asyncHandler } from '../utils/asyncHandler';
 
@@ -17,14 +17,7 @@ router.get('/', asyncHandler(async (req, res) => {
   const { status, category, search, sortBy, sortOrder, studentEmail, minConfidence, maxConfidence, dateRange, page, limit } = req.query;
   const whereClause: any = {};
 
-  // Unconditionally exclude tickets resolved by AI (which contain messages sent by SYSTEM_AI)
-  whereClause.NOT = {
-    messages: {
-      some: {
-        sender: MessageSender.SYSTEM_AI,
-      },
-    },
-  };
+
 
   if (status && Object.values(TicketStatus).includes(status as TicketStatus)) {
     whereClause.status = status as TicketStatus;
@@ -219,7 +212,15 @@ router.get('/:id', asyncHandler(async (req, res) => {
 // Update ticket status, category, or assignedToId
 router.patch('/:id', asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { status, category, assignedToId } = req.body;
+  const { status, category, assignedToId, priority, sentiment } = req.body;
+
+  const existingTicket = await prisma.ticket.findUnique({
+    where: { id },
+  });
+
+  if (!existingTicket) {
+    return res.status(404).json({ error: 'Ticket not found.' });
+  }
 
   const updateData: any = {};
   if (status && Object.values(TicketStatus).includes(status as TicketStatus)) {
@@ -239,6 +240,12 @@ router.patch('/:id', asyncHandler(async (req, res) => {
       updateData.assignedToId = assignedToId;
     }
   }
+  if (priority !== undefined) {
+    updateData.priority = priority;
+  }
+  if (sentiment !== undefined) {
+    updateData.sentiment = sentiment;
+  }
 
   try {
     const updatedTicket = await prisma.ticket.update({
@@ -254,6 +261,35 @@ router.patch('/:id', asyncHandler(async (req, res) => {
         },
       },
     });
+
+    // Send notifications for status changes
+    if (status && status !== existingTicket.status) {
+      if (updatedTicket.status === TicketStatus.CLOSED) {
+        await sendTicketClosedEmail(
+          updatedTicket.studentEmail,
+          updatedTicket.ticketNumber,
+          updatedTicket.subject
+        );
+      } else {
+        await sendTicketStatusUpdateEmail(
+          updatedTicket.studentEmail,
+          updatedTicket.ticketNumber,
+          updatedTicket.subject,
+          updatedTicket.status
+        );
+      }
+    }
+
+    // Send notifications for assignment changes
+    if (assignedToId !== undefined && assignedToId !== existingTicket.assignedToId && updatedTicket.assignedTo) {
+      await sendTicketAssignmentEmail(
+        updatedTicket.assignedTo.email,
+        updatedTicket.id,
+        updatedTicket.ticketNumber,
+        updatedTicket.subject,
+        updatedTicket.category
+      );
+    }
 
     let assignedTo = null;
     if (updatedTicket.assignedTo) {

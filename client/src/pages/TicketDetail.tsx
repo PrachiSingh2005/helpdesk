@@ -72,10 +72,14 @@ export const TicketDetail: React.FC = () => {
     fetchAgents();
   }, [id]);
 
-  // Auto-scroll to bottom whenever messages change
+  // Only auto-scroll when a new manual reply is submitted by the user
+  const prevMsgLength = useRef(0);
   useEffect(() => {
     if (ticket?.messages?.length) {
-      scrollToBottom();
+      if (prevMsgLength.current > 0 && ticket.messages.length > prevMsgLength.current) {
+        scrollToBottom();
+      }
+      prevMsgLength.current = ticket.messages.length;
     }
   }, [ticket?.messages?.length]);
 
@@ -96,6 +100,26 @@ export const TicketDetail: React.FC = () => {
       setTicket((prev) => (prev ? { ...prev, category: data.ticket.category } : null));
     } catch (err: any) {
       alert(err.message || 'Failed to update ticket category.');
+    }
+  };
+
+  const handlePriorityChange = async (newPriority: string) => {
+    if (!ticket) return;
+    try {
+      const data = await api.tickets.update(ticket.id, { priority: newPriority });
+      setTicket((prev) => (prev ? { ...prev, priority: data.ticket.priority } : null));
+    } catch (err: any) {
+      alert(err.message || 'Failed to update ticket priority.');
+    }
+  };
+
+  const handleSentimentChange = async (newSentiment: string) => {
+    if (!ticket) return;
+    try {
+      const data = await api.tickets.update(ticket.id, { sentiment: newSentiment });
+      setTicket((prev) => (prev ? { ...prev, sentiment: data.ticket.sentiment } : null));
+    } catch (err: any) {
+      alert(err.message || 'Failed to update ticket sentiment.');
     }
   };
 
@@ -336,6 +360,8 @@ export const TicketDetail: React.FC = () => {
         handleCategoryChange={handleCategoryChange}
         handleAgentChange={handleAgentChange}
         applyAISuggestion={applyAISuggestion}
+        handlePriorityChange={handlePriorityChange}
+        handleSentimentChange={handleSentimentChange}
       />
     </div>
   );

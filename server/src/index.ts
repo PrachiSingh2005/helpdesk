@@ -6,6 +6,7 @@ import path from 'path';
 import { config } from './config';
 import { authMiddleware } from './middleware/auth';
 import { initQueue, stopQueue } from './services/queue';
+import { startIMAPListener, stopIMAPListener } from './services/imapListener';
 import { prisma } from './db';
 
 // Router imports
@@ -16,6 +17,7 @@ import kbRoutes from './routes/kb';
 import emailRoutes from './routes/emails';
 import dashboardRoutes from './routes/dashboard';
 import userRoutes from './routes/users';
+import settingsRoutes from './routes/settings';
 
 const app = express();
 
@@ -62,6 +64,7 @@ app.use('/api/kb', kbRoutes);
 app.use('/api/emails', emailRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Serve client static assets in production
 if (process.env.NODE_ENV === 'production') {
@@ -139,23 +142,24 @@ app.listen(PORT, async () => {
         SELECT COUNT(*)::INT INTO technical_count FROM "Ticket" WHERE "category" = 'TECHNICAL_QUESTION';
         SELECT COUNT(*)::INT INTO refund_count FROM "Ticket" WHERE "category" = 'REFUND_REQUEST';
 
-        -- 4. Auto vs manual resolved
+        -- 4. Auto vs manual resolved (for tickets in RESOLVED or CLOSED status)
         SELECT COUNT(*)::INT INTO auto_resolved
         FROM "Ticket" t
-        WHERE EXISTS (
-            SELECT 1 FROM "Message" m
-            WHERE m."ticketId" = t."id" AND m."sender" = 'SYSTEM_AI'
+        WHERE t."status" IN ('RESOLVED', 'CLOSED')
+          AND (
+            t."assignedToId" = (SELECT "id" FROM "User" WHERE "email" = 'ai@helpdesk.edu' LIMIT 1)
+            OR NOT EXISTS (
+              SELECT 1 FROM "Message" m
+              WHERE m."ticketId" = t."id" AND m."sender" = 'AGENT'
+            )
           );
 
         SELECT COUNT(*)::INT INTO manual_resolved
         FROM "Ticket" t
-        WHERE EXISTS (
+        WHERE t."status" IN ('RESOLVED', 'CLOSED')
+          AND EXISTS (
             SELECT 1 FROM "Message" m
             WHERE m."ticketId" = t."id" AND m."sender" = 'AGENT'
-          )
-          AND NOT EXISTS (
-            SELECT 1 FROM "Message" m
-            WHERE m."ticketId" = t."id" AND m."sender" = 'SYSTEM_AI'
           );
 
         -- 5. Avg confidence
@@ -220,11 +224,15 @@ app.listen(PORT, async () => {
 
   // Start pg-boss background queue
   initQueue().catch((err) => console.error('Failed to initialize job queue:', err));
+
+  // Start Gmail IMAP polling daemon
+  startIMAPListener();
 });
 
 // Clean shutdown handlers
 const shutdown = async () => {
   console.log('Shutting down server...');
+  stopIMAPListener();
   await stopQueue();
   process.exit(0);
 };

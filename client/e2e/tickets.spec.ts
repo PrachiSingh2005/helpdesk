@@ -115,7 +115,7 @@ test.describe('HelpDesk E2E Testing Suite - Ticket Details & Reply Thread Integr
     // 4. Submit and verify reply gets added to database and persists in thread
     await page.getByRole('button', { name: 'Send Reply' }).click();
     await expect(page.getByTestId('reply-thread')).toBeVisible();
-    await expect(page.getByText(typedText)).toBeVisible();
+    await expect(page.getByTestId('reply-thread').getByText(typedText).first()).toBeVisible();
   });
 
   test('4. Agent can polish a draft reply using Polish button and then submit it', async ({ page, request }) => {

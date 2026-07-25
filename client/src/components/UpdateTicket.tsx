@@ -16,6 +16,8 @@ interface UpdateTicketProps {
   handleCategoryChange: (category: string) => Promise<void>;
   handleAgentChange: (agentId: string) => Promise<void>;
   applyAISuggestion: () => void;
+  handlePriorityChange: (priority: string) => Promise<void>;
+  handleSentimentChange: (sentiment: string) => Promise<void>;
 }
 
 export const UpdateTicket: React.FC<UpdateTicketProps> = ({
@@ -25,6 +27,8 @@ export const UpdateTicket: React.FC<UpdateTicketProps> = ({
   handleCategoryChange,
   handleAgentChange,
   applyAISuggestion,
+  handlePriorityChange,
+  handleSentimentChange,
 }) => {
   const messages = ticket.messages || [];
 
@@ -63,6 +67,37 @@ export const UpdateTicket: React.FC<UpdateTicketProps> = ({
             <option value="GENERAL_QUESTION">General Question</option>
             <option value="TECHNICAL_QUESTION">Technical Question</option>
             <option value="REFUND_REQUEST">Refund Request</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1.5">
+            Priority
+          </label>
+          <select
+            value={ticket.priority || 'MEDIUM'}
+            onChange={(e) => handlePriorityChange(e.target.value)}
+            className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none cursor-pointer focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 transition-all font-semibold"
+          >
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+            <option value="URGENT">Urgent</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1.5">
+            Sentiment
+          </label>
+          <select
+            value={ticket.sentiment || 'NEUTRAL'}
+            onChange={(e) => handleSentimentChange(e.target.value)}
+            className="w-full bg-card border border-border rounded-xl px-3 py-2 text-sm text-foreground focus:outline-none cursor-pointer focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10 transition-all font-semibold"
+          >
+            <option value="POSITIVE">😊 Positive</option>
+            <option value="NEUTRAL">😐 Neutral</option>
+            <option value="NEGATIVE">😠 Negative</option>
           </select>
         </div>
 
