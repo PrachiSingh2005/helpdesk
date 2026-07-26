@@ -33,7 +33,7 @@ export const UpdateTicket: React.FC<UpdateTicketProps> = ({
   const messages = ticket.messages || [];
 
   return (
-    <div className="w-full md:w-80 flex flex-col gap-5 h-full overflow-y-auto pr-1">
+    <div className="w-full lg:w-80 flex flex-col gap-5 h-auto lg:h-full lg:overflow-y-auto pr-1 shrink-0">
       {/* Ticket attributes */}
       <div className="bg-card p-5 rounded-2xl border border-border space-y-4 shadow-sm">
         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest border-b border-border pb-2.5">

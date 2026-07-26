@@ -6,8 +6,8 @@ import path from 'path';
 import { config } from './config';
 import { authMiddleware } from './middleware/auth';
 import { initQueue, stopQueue } from './services/queue';
-import { startIMAPListener, stopIMAPListener } from './services/imapListener';
-import { prisma } from './db';
+import { startIMAPListener, stopIMAPListener, getIMAPHealthStatus } from './services/imapListener';
+import { prisma, verifyDatabaseConnection } from './db';
 
 // Router imports
 import authRoutes from './routes/auth';
@@ -86,15 +86,18 @@ if (process.env.NODE_ENV === 'production') {
 import { errorHandler } from './middleware/error';
 app.use(errorHandler);
 
-// Server Status / Health Check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date() });
-});
-
-app.get('/api/health', (req, res) => {
+// Server Status / Health Check (Task 8)
+app.get(['/health', '/api/health'], (req, res) => {
+  const imapHealth = getIMAPHealthStatus();
   res.json({
     status: 'ok',
-    message: 'Backend is running'
+    message: 'Backend is running',
+    timestamp: new Date().toISOString(),
+    imapConnected: imapHealth.imapConnected,
+    lastEmailProcessed: imapHealth.lastEmailProcessed,
+    lastTicketCreated: imapHealth.lastTicketCreated,
+    currentDatabase: imapHealth.currentDatabase,
+    currentEnvironment: imapHealth.currentEnvironment,
   });
 });
 
@@ -108,6 +111,9 @@ app.listen(PORT, async () => {
   console.log(`Local Access: http://localhost:${PORT}            `);
   console.log(`Cross-Origin Resource Sharing (CORS): ${config.CLIENT_URL}`);
   console.log(`=================================================`);
+  
+  // Verify database connection & print required startup logs (Tasks 7 & 9)
+  await verifyDatabaseConnection();
   
   // Ensure stored function for dashboard stats exists in the database
   try {

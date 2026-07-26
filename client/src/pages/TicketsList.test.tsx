@@ -107,21 +107,21 @@ describe('TicketsList Component', () => {
     });
 
     // Check that ticket details are visible
-    expect(screen.getByText('#101')).toBeInTheDocument();
-    expect(screen.getByText('WiFi connection issues in dorm')).toBeInTheDocument();
-    expect(screen.getByText('student1@college.edu')).toBeInTheDocument();
+    expect(screen.getAllByText('#101')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('WiFi connection issues in dorm')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('student1@college.edu')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Open')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Technical Question')[0]).toBeInTheDocument();
-    expect(screen.getByText('Student has trouble connecting to campus WiFi.')).toBeInTheDocument();
-    expect(screen.getByText('(95% conf)')).toBeInTheDocument();
+    expect(screen.getAllByText('Student has trouble connecting to campus WiFi.')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('(95% conf)')[0]).toBeInTheDocument();
 
-    expect(screen.getByText('#102')).toBeInTheDocument();
-    expect(screen.getByText('Question about library opening hours')).toBeInTheDocument();
-    expect(screen.getByText('student2@college.edu')).toBeInTheDocument();
+    expect(screen.getAllByText('#102')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Question about library opening hours')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('student2@college.edu')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Resolved')[0]).toBeInTheDocument();
     expect(screen.getAllByText('General Question')[0]).toBeInTheDocument();
-    expect(screen.getByText('Wants to know when the library is open.')).toBeInTheDocument();
-    expect(screen.getByText('(88% conf)')).toBeInTheDocument();
+    expect(screen.getAllByText('Wants to know when the library is open.')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('(88% conf)')[0]).toBeInTheDocument();
   });
 
   it('navigates to ticket details view when View button is clicked', async () => {
@@ -130,7 +130,7 @@ describe('TicketsList Component', () => {
     renderWithClient(<TicketsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('#101')).toBeInTheDocument();
+      expect(screen.getAllByText('#101')[0]).toBeInTheDocument();
     });
 
     // Click the first "View" button
@@ -294,7 +294,7 @@ describe('TicketsList Component', () => {
     renderWithClient(<TicketsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('#101')).toBeInTheDocument();
+      expect(screen.getAllByText('#101')[0]).toBeInTheDocument();
     });
 
     // Click "Ticket" header to sort by ticketNumber desc
@@ -340,7 +340,7 @@ describe('TicketsList Component', () => {
     renderWithClient(<TicketsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('#101')).toBeInTheDocument();
+      expect(screen.getAllByText('#101')[0]).toBeInTheDocument();
     });
 
     // Click "Student" header to sort by studentEmail asc
@@ -368,7 +368,7 @@ describe('TicketsList Component', () => {
     renderWithClient(<TicketsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('#101')).toBeInTheDocument();
+      expect(screen.getAllByText('#101')[0]).toBeInTheDocument();
     });
 
     // Click "Classification" header to sort by status asc
@@ -396,7 +396,7 @@ describe('TicketsList Component', () => {
     renderWithClient(<TicketsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('#101')).toBeInTheDocument();
+      expect(screen.getAllByText('#101')[0]).toBeInTheDocument();
     });
 
     // Click "AI Insight" header to sort by aiConfidence desc
@@ -424,7 +424,7 @@ describe('TicketsList Component', () => {
     renderWithClient(<TicketsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('#101')).toBeInTheDocument();
+      expect(screen.getAllByText('#101')[0]).toBeInTheDocument();
     });
 
     // Advanced filters are always visible in the sidebar — no toggle needed
@@ -454,7 +454,7 @@ describe('TicketsList Component', () => {
     renderWithClient(<TicketsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('#101')).toBeInTheDocument();
+      expect(screen.getAllByText('#101')[0]).toBeInTheDocument();
     });
 
     // Advanced filters are always visible in the sidebar — no toggle needed
@@ -484,7 +484,7 @@ describe('TicketsList Component', () => {
     renderWithClient(<TicketsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('#101')).toBeInTheDocument();
+      expect(screen.getAllByText('#101')[0]).toBeInTheDocument();
     });
 
     // Advanced filters are always visible in the sidebar — no toggle needed
@@ -514,7 +514,7 @@ describe('TicketsList Component', () => {
     renderWithClient(<TicketsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('#101')).toBeInTheDocument();
+      expect(screen.getAllByText('#101')[0]).toBeInTheDocument();
     });
 
     // Advanced filters are always visible in the sidebar — no toggle needed
@@ -567,7 +567,7 @@ describe('TicketsList Component', () => {
     renderWithClient(<TicketsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('#101')).toBeInTheDocument();
+      expect(screen.getAllByText('#101')[0]).toBeInTheDocument();
     });
 
     // Verify pagination indicator shows "Page 1 of 3"
@@ -604,7 +604,7 @@ describe('TicketsList Component', () => {
     renderWithClient(<TicketsList />);
 
     await waitFor(() => {
-      expect(screen.getByText('#101')).toBeInTheDocument();
+      expect(screen.getAllByText('#101')[0]).toBeInTheDocument();
     });
 
     // Find the page-size select by its sibling "Show" label text

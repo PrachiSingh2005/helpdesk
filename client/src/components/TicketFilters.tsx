@@ -49,7 +49,7 @@ export const TicketFilters: React.FC<TicketFiltersProps> = ({
   setPage,
 }) => {
   return (
-    <aside className="w-64 shrink-0 space-y-4 sticky top-6">
+    <aside className="w-full lg:w-64 shrink-0 space-y-4 sticky top-6">
       {/* Sidebar header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-foreground font-bold text-sm">

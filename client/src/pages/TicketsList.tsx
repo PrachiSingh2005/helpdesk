@@ -77,6 +77,9 @@ export const TicketsList: React.FC = () => {
 
   useEffect(() => {
     fetchTickets();
+    // Real-time synchronization: Poll every 5 seconds (Requirement 10)
+    const interval = setInterval(fetchTickets, 5000);
+    return () => clearInterval(interval);
   }, [status, category, sorting, studentEmail, confidenceFilter, dateRange, page, limit]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -332,9 +335,9 @@ export const TicketsList: React.FC = () => {
 
 
   return (
-    <div className="flex gap-6 items-start animate-fadeIn">
+    <div className="flex flex-col lg:flex-row gap-6 items-start animate-fadeIn max-w-full">
       {/* ── Left column: Queue table ──────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0 space-y-4">
+      <div className="flex-1 min-w-0 w-full space-y-4">
         {/* Search bar */}
         <form onSubmit={handleSearchSubmit} className="relative">
           <input
@@ -371,7 +374,70 @@ export const TicketsList: React.FC = () => {
           </div>
         ) : (
           <div className="bg-card overflow-hidden rounded-2xl border border-border shadow-md">
-            <div className="overflow-x-auto">
+            {/* Mobile Cards View (Screen < 768px) */}
+            <div className="block md:hidden p-4 space-y-3 divide-y divide-border/40">
+              {tickets.map((t) => (
+                <div
+                  key={t.id}
+                  onClick={() => navigate(`/dashboard/tickets/${t.id}`)}
+                  className="pt-3 first:pt-0 space-y-2.5 cursor-pointer active:opacity-80"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-extrabold text-foreground text-sm">{`#${t.ticketNumber}`}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-lg border ${
+                          t.status === 'OPEN'
+                            ? 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5'
+                            : t.status === 'RESOLVED'
+                            ? 'text-teal-600 dark:text-teal-400 border-teal-500/20 bg-teal-500/5'
+                            : 'text-muted-foreground border-border bg-muted/30'
+                        }`}
+                      >
+                        {t.status}
+                      </span>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 text-[10px] font-bold rounded-lg border ${
+                          t.category === 'GENERAL_QUESTION'
+                            ? 'text-blue-600 dark:text-blue-400 border-blue-500/20 bg-blue-500/5'
+                            : t.category === 'TECHNICAL_QUESTION'
+                            ? 'text-purple-600 dark:text-purple-400 border-purple-500/20 bg-purple-500/5'
+                            : 'text-pink-600 dark:text-pink-400 border-pink-500/20 bg-pink-500/5'
+                        }`}
+                      >
+                        {t.category === 'GENERAL_QUESTION' ? 'General' : t.category === 'TECHNICAL_QUESTION' ? 'Technical' : 'Refund'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-bold text-foreground text-sm leading-snug">{t.subject}</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{t.studentEmail}</p>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1.5">
+                    <div className="flex items-center gap-2">
+                      {t.priority && (
+                        <span className="text-[10px] font-extrabold text-amber-600 dark:text-amber-400 uppercase">
+                          {t.priority}
+                        </span>
+                      )}
+                      {t.aiConfidence !== undefined && t.aiConfidence !== null && (
+                        <span className="text-[10px] text-teal-600 dark:text-teal-400 font-bold">
+                          {Math.round(t.aiConfidence * 100)}% AI Conf
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-semibold text-muted-foreground truncate max-w-[140px]">
+                      {t.assignedTo?.name ? `Agent: ${t.assignedTo.name}` : 'Unassigned'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (Screen >= 768px) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
                   {table.getHeaderGroups().map((headerGroup) => (

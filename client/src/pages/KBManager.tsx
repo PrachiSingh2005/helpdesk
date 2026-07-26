@@ -99,9 +99,9 @@ export const KBManager: React.FC = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex gap-8 animate-fadeIn">
+    <div className="min-h-0 flex-1 flex flex-col lg:flex-row gap-6 animate-fadeIn h-auto lg:h-[calc(100vh-8rem)] max-w-full">
       {/* Left panel: sidebar list of articles */}
-      <div className="w-80 bg-card rounded-2xl border border-border flex flex-col overflow-hidden shadow-sm">
+      <div className="w-full lg:w-80 h-64 lg:h-full bg-card rounded-2xl border border-border flex flex-col overflow-hidden shadow-sm shrink-0">
         <div className="p-4 bg-muted/50 border-b border-border flex items-center justify-between">
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wider flex items-center gap-2">
             <BookOpen className="w-4 h-4 text-teal-600 dark:text-teal-400" />

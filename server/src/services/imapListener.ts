@@ -1,14 +1,38 @@
 import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import { config } from '../config';
-import { prisma } from '../db';
+import { prisma, getDatabaseInfo } from '../db';
 import { MessageSender, TicketStatus } from '@prisma/client';
-import { isSmtpConfigured, sendAutoAcknowledgementEmail } from './email';
+import { isSmtpConfigured } from './email';
 import { classifyTicketInBackground } from './ai';
 
 let imapInterval: any = null;
 let heartbeatInterval: any = null;
 let isPolling = false;
+
+// Health Status Tracking
+let isImapConnected = false;
+let lastEmailProcessed: string | null = null;
+let lastTicketCreated: string | null = null;
+
+export interface HealthStatus {
+  imapConnected: boolean;
+  lastEmailProcessed: string | null;
+  lastTicketCreated: string | null;
+  currentDatabase: string;
+  currentEnvironment: string;
+}
+
+export function getIMAPHealthStatus(): HealthStatus {
+  const dbInfo = getDatabaseInfo();
+  return {
+    imapConnected: isImapConnected,
+    lastEmailProcessed,
+    lastTicketCreated,
+    currentDatabase: `${dbInfo.host}:${dbInfo.port}/${dbInfo.database}`,
+    currentEnvironment: process.env.NODE_ENV || 'development',
+  };
+}
 
 /**
  * Starts the continuous Gmail inbox monitoring daemon.
@@ -22,10 +46,10 @@ export function startIMAPListener() {
     console.warn('[IMAP LISTENER] Gmail SMTP/IMAP credentials are not fully configured in .env. Skipping IMAP polling daemon.');
   }
 
-  // 60-second Heartbeat log (Task 7)
+  // 60-second Heartbeat log
   if (!heartbeatInterval) {
     heartbeatInterval = setInterval(() => {
-      console.log('[IMAP LISTENER] Heartbeat: Listener is active and monitoring inbox... (Waiting for new emails)');
+      console.log(`[IMAP LISTENER] Heartbeat: Listener active | Connected: ${isImapConnected} | Waiting for new emails...`);
     }, 60000);
   }
 
@@ -36,7 +60,7 @@ export function startIMAPListener() {
     console.error('[IMAP LISTENER] Initial poll iteration error (auto-reconnecting next cycle):', err.message || err);
   });
 
-  // Scheduled polling every 30 seconds (Task 8: Production-safe scheduled polling)
+  // Scheduled polling every 30 seconds
   imapInterval = setInterval(async () => {
     if (isPolling) return;
     isPolling = true;
@@ -62,6 +86,7 @@ export function stopIMAPListener() {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
   }
+  isImapConnected = false;
   console.log('[IMAP LISTENER] Stopped Gmail IMAP polling daemon.');
 }
 
@@ -81,7 +106,7 @@ function parseEmailAddress(fromHeader: string): string {
 }
 
 /**
- * Polls Gmail INBOX for new unread emails.
+ * Polls Gmail INBOX for new unread/unprocessed emails.
  */
 async function pollInbox() {
   const client = new ImapFlow({
@@ -97,11 +122,13 @@ async function pollInbox() {
   });
 
   client.on('error', (err) => {
+    isImapConnected = false;
     console.error('[IMAP LISTENER] ImapFlow client error:', err.message || err);
   });
 
   try {
     await client.connect();
+    isImapConnected = true;
     console.log('Connected to Gmail');
     console.log('[IMAP LISTENER] Connected to Gmail');
     console.log('Waiting for new emails');
@@ -115,8 +142,8 @@ async function pollInbox() {
         return;
       }
 
-      // Fetch latest 30 messages sequence range (bypasses volatile \Seen flag issues)
-      const startSeq = Math.max(1, totalMessages - 30);
+      // Fetch sequence range of up to 100 recent messages
+      const startSeq = Math.max(1, totalMessages - 100);
       const range = `${startSeq}:*`;
 
       const fetchedMessages = [];
@@ -128,42 +155,70 @@ async function pollInbox() {
       fetchedMessages.reverse();
 
       for (const msg of fetchedMessages) {
+        if (!msg || !msg.source) continue;
+
+        let parsed: any;
         try {
-          if (!msg || !msg.source) continue;
+          parsed = await simpleParser(msg.source);
+        } catch (parseErr: any) {
+          console.error(`[IMAP LISTENER] Skipped because parser failed: ${parseErr.message || parseErr}`);
+          continue;
+        }
 
-          const parsed = await simpleParser(msg.source);
-          const fromHeader = parsed.from?.text || '';
-          const subject = parsed.subject || '(No Subject)';
-          const bodyText = parsed.text || parsed.html || '';
-          const gmailThreadId = msg.threadId || null;
-          const messageId = parsed.messageId || msg.envelope?.messageId || null;
+        const fromHeader = parsed.from?.text || '';
+        const subject = parsed.subject || '(No Subject)';
+        const bodyText = parsed.text || parsed.html || '';
+        const gmailThreadId = msg.threadId || null;
+        const messageId = parsed.messageId || msg.envelope?.messageId || null;
+        const emailDate = parsed.date || msg.envelope?.date || new Date();
 
-          const studentEmail = parseEmailAddress(fromHeader);
-          if (!studentEmail || !studentEmail.includes('@')) continue;
+        const studentEmail = parseEmailAddress(fromHeader);
+        if (!studentEmail || !studentEmail.includes('@')) {
+          console.log(`[IMAP LISTENER] Skipped because filter matched: Invalid or empty sender email ("${fromHeader}")`);
+          continue;
+        }
 
-          // Skip own sent emails
-          if (studentEmail.toLowerCase() === config.EMAIL_SERVER_USER.toLowerCase()) continue;
+        // Skip own sent emails to prevent infinite loops
+        if (studentEmail.toLowerCase() === config.EMAIL_SERVER_USER.toLowerCase()) {
+          console.log(`[IMAP LISTENER] Skipped because filter matched: Sent from helpdesk own email address (${studentEmail})`);
+          continue;
+        }
 
-          // Filter out bounce/delivery notification emails to prevent infinite loops
-          const senderLower = studentEmail.toLowerCase();
-          const bounceSenders = ['mailer-daemon@', 'postmaster@', 'noreply@', 'no-reply@'];
-          const bounceSubjects = ['delivery status notification', 'undeliverable', 'mail delivery failed', 'returned mail', 'failure notice'];
-          const isBounce = bounceSenders.some(prefix => senderLower.startsWith(prefix)) ||
-                           bounceSubjects.some(kw => subject.toLowerCase().includes(kw));
-          if (isBounce) continue;
+        // Filter out bounce/delivery failure notifications
+        const senderLower = studentEmail.toLowerCase();
+        const bounceSenders = ['mailer-daemon@', 'postmaster@'];
+        const bounceSubjects = ['delivery status notification', 'undeliverable', 'mail delivery failed', 'returned mail', 'failure notice'];
+        const isBounce = bounceSenders.some((prefix) => senderLower.startsWith(prefix)) ||
+                         bounceSubjects.some((kw) => subject.toLowerCase().includes(kw));
+        if (isBounce) {
+          console.log(`[IMAP LISTENER] Skipped because filter matched: Automated bounce/delivery notification from ${studentEmail}`);
+          continue;
+        }
 
-          // DB Message-ID Deduplication: Skip if message was already ingested into database
-          if (messageId) {
-            const existingMsg = await prisma.message.findFirst({
-              where: { messageId },
-            });
-            if (existingMsg) continue;
+        // Log every email detected (Task 2)
+        console.log('New email detected');
+        console.log(`[IMAP LISTENER] Email Detected:`);
+        console.log(`  - Message ID: ${messageId || 'N/A'}`);
+        console.log(`  - Gmail Thread ID: ${gmailThreadId || 'N/A'}`);
+        console.log(`  - From: ${fromHeader}`);
+        console.log(`  - Subject: ${subject}`);
+        console.log(`  - Date: ${new Date(emailDate).toISOString()}`);
+
+        // DB Message-ID Deduplication (Tasks 3 & 5)
+        if (messageId) {
+          const existingMsg = await prisma.message.findFirst({
+            where: { messageId },
+          });
+          if (existingMsg) {
+            console.log(`[IMAP LISTENER] Skipped because duplicate: MessageID <${messageId}> already exists in database`);
+            continue;
           }
+        }
 
-          console.log('New email detected');
-          console.log(`[IMAP LISTENER] New email detected from ${studentEmail}: "${subject}" (MessageID: ${messageId})`);
+        lastEmailProcessed = new Date().toISOString();
 
-          // Process ticket creation or message append
+        // Process ticket creation or message append
+        try {
           await processInboundEmail({
             studentEmail,
             subject,
@@ -176,14 +231,15 @@ async function pollInbox() {
           if (msg.uid) {
             await client.messageFlagsAdd({ uid: msg.uid }, ['\\Seen']);
           }
-        } catch (err: any) {
-          console.error(`[IMAP LISTENER] Error processing email:`, err);
+        } catch (procErr: any) {
+          console.error(`[IMAP LISTENER] Skipped because database insert failed:`, procErr.stack || procErr);
         }
       }
     } finally {
       lock.release();
     }
   } catch (connErr: any) {
+    isImapConnected = false;
     console.error(`[IMAP LISTENER] Gmail connection/auth failed: ${connErr.message || connErr}. Reconnecting automatically on next cycle...`);
   } finally {
     try {
@@ -231,6 +287,15 @@ async function processInboundEmail(params: InboundEmailParams) {
   if (ticket) {
     console.log(`[IMAP LISTENER] Email matches existing Ticket #${ticket.ticketNumber}`);
 
+    // Check messageId uniqueness before append
+    if (messageId) {
+      const existingMessage = await prisma.message.findFirst({ where: { messageId } });
+      if (existingMessage) {
+        console.log(`[IMAP LISTENER] Skipped because duplicate: MessageID <${messageId}> already appended to Ticket #${ticket.ticketNumber}`);
+        return;
+      }
+    }
+
     const updateData: any = {
       lastActivity: new Date(),
     };
@@ -241,22 +306,27 @@ async function processInboundEmail(params: InboundEmailParams) {
       updateData.gmailThreadId = gmailThreadId;
     }
 
-    // Reopen and update activity
-    await prisma.ticket.update({
-      where: { id: ticket.id },
-      data: updateData,
-    });
+    try {
+      await prisma.ticket.update({
+        where: { id: ticket.id },
+        data: updateData,
+      });
 
-    // Save reply message
-    await prisma.message.create({
-      data: {
-        ticketId: ticket.id,
-        sender: MessageSender.STUDENT,
-        senderEmail: studentEmail,
-        body: bodyText,
-        messageId: messageId || undefined,
-      },
-    });
+      await prisma.message.create({
+        data: {
+          ticketId: ticket.id,
+          sender: MessageSender.STUDENT,
+          senderEmail: studentEmail,
+          body: bodyText,
+          messageId: messageId || undefined,
+        },
+      });
+
+      console.log(`[IMAP LISTENER] Appended student message to Ticket #${ticket.ticketNumber}`);
+    } catch (dbErr: any) {
+      console.error(`[IMAP LISTENER] Skipped because database insert failed (Updating Ticket #${ticket.ticketNumber}):`, dbErr.stack || dbErr);
+      throw dbErr;
+    }
 
     // Trigger AI analysis on the updated thread
     classifyTicketInBackground(
@@ -274,29 +344,37 @@ async function processInboundEmail(params: InboundEmailParams) {
 
     const aiAgent = await prisma.user.findUnique({ where: { email: 'ai@helpdesk.edu' } });
 
-    ticket = await prisma.ticket.create({
-      data: {
-        studentEmail,
-        subject,
-        gmailThreadId,
-        category: 'GENERAL_QUESTION',
-        priority: 'MEDIUM',
-        assignedToId: aiAgent ? aiAgent.id : null,
-        lastActivity: new Date(),
-      },
-    });
-    console.log('Ticket created');
-    console.log(`[IMAP LISTENER] Ticket created #${ticket.ticketNumber}`);
+    try {
+      ticket = await prisma.ticket.create({
+        data: {
+          studentEmail,
+          subject,
+          gmailThreadId,
+          category: 'GENERAL_QUESTION',
+          priority: 'MEDIUM',
+          assignedToId: aiAgent ? aiAgent.id : null,
+          lastActivity: new Date(),
+        },
+      });
 
-    await prisma.message.create({
-      data: {
-        ticketId: ticket.id,
-        sender: MessageSender.STUDENT,
-        senderEmail: studentEmail,
-        body: bodyText,
-        messageId: messageId || undefined,
-      },
-    });
+      await prisma.message.create({
+        data: {
+          ticketId: ticket.id,
+          sender: MessageSender.STUDENT,
+          senderEmail: studentEmail,
+          body: bodyText,
+          messageId: messageId || undefined,
+        },
+      });
+
+      lastTicketCreated = new Date().toISOString();
+      console.log('Ticket created');
+      console.log(`[IMAP LISTENER] Ticket created #${ticket.ticketNumber} (ID: ${ticket.id})`);
+      console.log(`[IMAP LISTENER] Verified database insert in host: ${getDatabaseInfo().host}`);
+    } catch (dbErr: any) {
+      console.error(`[IMAP LISTENER] Skipped because database insert failed (New Ticket Creation):`, dbErr.stack || dbErr);
+      throw dbErr;
+    }
 
     // Queue AI processing
     classifyTicketInBackground(
@@ -310,4 +388,3 @@ async function processInboundEmail(params: InboundEmailParams) {
     );
   }
 }
-

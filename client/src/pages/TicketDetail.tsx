@@ -70,6 +70,10 @@ export const TicketDetail: React.FC = () => {
   useEffect(() => {
     fetchTicketDetails();
     fetchAgents();
+
+    // Auto-refresh ticket details every 5 seconds for real-time AI summary and message updates
+    const interval = setInterval(fetchTicketDetails, 5000);
+    return () => clearInterval(interval);
   }, [id]);
 
   // Only auto-scroll when a new manual reply is submitted by the user
@@ -206,7 +210,7 @@ export const TicketDetail: React.FC = () => {
       : 'text-slate-400 bg-slate-500/10 border-slate-500/30';
 
   return (
-    <div className="h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-6 animate-fadeIn">
+    <div className="min-h-0 flex-1 flex flex-col lg:flex-row gap-6 animate-fadeIn h-auto lg:h-[calc(100vh-8rem)] max-w-full">
 
       {/* ── Left column: Thread + Compose ─────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 h-full bg-card rounded-2xl border border-border shadow-md overflow-hidden">

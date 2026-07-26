@@ -75,7 +75,11 @@ export const DashboardHome: React.FC = () => {
         setLoading(false);
       }
     };
+
     fetchStats();
+    // Real-time synchronization: Poll every 5 seconds (Requirement 10)
+    const interval = setInterval(fetchStats, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleRangeChange = (range: '30' | '14' | '7') => {
@@ -118,7 +122,23 @@ export const DashboardHome: React.FC = () => {
       border: 'border-amber-500/15',
     },
     {
-      label: 'Resolved by AI',
+      label: 'In Progress',
+      value: <AnimatedNumber value={stats.statusStats.IN_PROGRESS || 0} />,
+      icon: UserCog,
+      color: 'text-indigo-600 dark:text-indigo-400',
+      bg: 'bg-indigo-500/10',
+      border: 'border-indigo-500/15',
+    },
+    {
+      label: 'Resolved Tickets',
+      value: <AnimatedNumber value={(stats.statusStats.RESOLVED || 0) + (stats.statusStats.CLOSED || 0)} />,
+      icon: UserCheck,
+      color: 'text-emerald-600 dark:text-emerald-400',
+      bg: 'bg-emerald-500/10',
+      border: 'border-emerald-500/15',
+    },
+    {
+      label: 'AI Resolved',
       value: <AnimatedNumber value={stats.aiMetrics.autoResolved} />,
       icon: Sparkles,
       color: 'text-teal-600 dark:text-teal-400',
@@ -126,8 +146,8 @@ export const DashboardHome: React.FC = () => {
       border: 'border-teal-500/15',
     },
     {
-      label: '% Resolved by AI',
-      value: `${stats.totalTickets > 0 ? Math.round((stats.aiMetrics.autoResolved / stats.totalTickets) * 100) : 0}%`,
+      label: 'AI Resolution Rate',
+      value: `${stats.aiMetrics.aiResolutionRate ?? (stats.totalTickets > 0 ? Math.round((stats.aiMetrics.autoResolved / stats.totalTickets) * 100) : 0)}%`,
       icon: Percent,
       color: 'text-cyan-600 dark:text-cyan-400',
       bg: 'bg-cyan-500/10',
@@ -140,6 +160,14 @@ export const DashboardHome: React.FC = () => {
       color: 'text-emerald-600 dark:text-emerald-400',
       bg: 'bg-emerald-500/10',
       border: 'border-emerald-500/15',
+    },
+    {
+      label: 'Avg First Response',
+      value: formatResolutionTime(stats.aiMetrics.avgFirstResponseTimeMin || 1),
+      icon: TrendingUp,
+      color: 'text-purple-600 dark:text-purple-400',
+      bg: 'bg-purple-500/10',
+      border: 'border-purple-500/15',
     },
   ];
 
@@ -154,23 +182,23 @@ export const DashboardHome: React.FC = () => {
   const totalPeriodTickets = filteredDailyStats.reduce((acc, curr) => acc + curr.count, 0);
 
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="space-y-6 sm:space-y-8 animate-fadeIn max-w-full">
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
         {statCards.map((card, idx) => {
           const Icon = card.icon;
           return (
             <div
               key={idx}
-              className="bg-card p-6 rounded-2xl border border-border flex items-center justify-between transition-all duration-300 hover:scale-[1.03] hover:border-teal-500/30 hover:shadow-lg hover:shadow-teal-500/5 relative overflow-hidden group"
+              className="bg-card p-4 sm:p-6 rounded-2xl border border-border flex items-center justify-between transition-all duration-300 hover:scale-[1.02] sm:hover:scale-[1.03] hover:border-teal-500/30 hover:shadow-lg hover:shadow-teal-500/5 relative overflow-hidden group"
             >
-              <div className="relative z-10">
-                <span className="text-muted-foreground text-[10px] lg:text-[11px] font-bold uppercase tracking-wider block mb-1">
+              <div className="relative z-10 min-w-0 pr-2">
+                <span className="text-muted-foreground text-[10px] lg:text-[11px] font-bold uppercase tracking-wider block mb-1 truncate">
                   {card.label}
                 </span>
-                <span className="text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight">{card.value}</span>
+                <span className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight">{card.value}</span>
               </div>
-              <div className={`p-2.5 rounded-xl border ${card.border} ${card.bg} transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 shadow-sm relative z-10`}>
+              <div className={`p-2.5 rounded-xl border ${card.border} ${card.bg} transition-all duration-300 group-hover:scale-110 shadow-sm relative z-10 shrink-0`}>
                 <Icon className={`w-5 h-5 ${card.color}`} />
               </div>
 

@@ -68,6 +68,7 @@ export interface DashboardStats {
   totalTickets: number;
   statusStats: {
     OPEN: number;
+    IN_PROGRESS?: number;
     RESOLVED: number;
     CLOSED: number;
   };
@@ -81,15 +82,21 @@ export interface DashboardStats {
     manualResolved: number;
     avgConfidence: number;
     avgResolutionTimeMin: number;
+    avgFirstResponseTimeMin?: number;
+    aiResolutionRate?: number;
+    customerSatisfaction?: number;
   };
   dailyStats: { date: string; count: number }[];
 }
 
 import axios from 'axios';
 
+const configuredApiUrl = import.meta.env.VITE_API_URL || '';
+console.log(`Backend URL configured in frontend (VITE_API_URL): "${configuredApiUrl || '(Relative Path - Vercel Host)'}"`);
+
 // Create an axios instance configured with withCredentials to support database session cookies
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: configuredApiUrl,
   headers: {
     'Content-Type': 'application/json',
   },
