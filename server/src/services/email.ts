@@ -116,6 +116,8 @@ async function sendMailInternal({
       await transporter.sendMail(mailOptions);
       console.log(`[EMAIL SUCCESS] Email sent successfully via SMTP to ${to}`);
       console.log('✓ Email sent');
+      console.log('Auto reply sent');
+      console.log('[EMAIL] Auto reply sent');
     } catch (error: any) {
       console.error(`[EMAIL ERROR] Failed to deliver email to ${to} via SMTP:`, error.message);
       throw error; // Stop silently swallowing exceptions
@@ -133,6 +135,8 @@ async function sendMailInternal({
     console.log(`Text Body Preview:\n${text.substring(0, 300)}...`);
     console.log(`==================================================\n`);
     console.log('✓ Email sent');
+    console.log('Auto reply sent');
+    console.log('[EMAIL] Auto reply sent');
   }
 }
 

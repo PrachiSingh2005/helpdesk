@@ -531,6 +531,8 @@ export async function analyzeTicketWithAI(
   for (const modelName of fallbackModels) {
     try {
       console.log(`✓ Calling Gemini model: ${modelName}`);
+      console.log('Gemini called');
+      console.log('[AI] Gemini called');
       const contents = `Student Email: "${studentEmail}"\nSubject: "${subject}"\nBody: "${body}"\n\nKB Articles Context:\n${articlesText}`;
       const systemInstruction = `You are an intelligent, expert AI customer support assistant for HelpDesk Support.
 Your goal is to carefully analyze the student's support ticket (Subject and Body) along with any relevant Knowledge Base context, and provide a direct, helpful, and natural response tailored specifically to their issue.
