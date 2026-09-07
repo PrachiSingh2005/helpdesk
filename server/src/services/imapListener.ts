@@ -60,7 +60,7 @@ export function startIMAPListener() {
     console.error('[IMAP LISTENER] Initial poll iteration error (auto-reconnecting next cycle):', err.message || err);
   });
 
-  // Scheduled polling every 30 seconds
+  // Scheduled polling every 60 seconds (1 minute)
   imapInterval = setInterval(async () => {
     if (isPolling) return;
     isPolling = true;
@@ -71,7 +71,7 @@ export function startIMAPListener() {
     } finally {
       isPolling = false;
     }
-  }, 30000);
+  }, 60000);
 }
 
 /**
@@ -204,7 +204,7 @@ async function pollInbox() {
         console.log(`  - Subject: ${subject}`);
         console.log(`  - Date: ${new Date(emailDate).toISOString()}`);
 
-        // DB Message-ID Deduplication (Tasks 3 & 5)
+        // DB Message-ID Deduplication
         if (messageId) {
           const existingMsg = await prisma.message.findFirst({
             where: { messageId },
@@ -213,6 +213,23 @@ async function pollInbox() {
             console.log(`[IMAP LISTENER] Skipped because duplicate: MessageID <${messageId}> already exists in database`);
             continue;
           }
+        }
+
+        // DB Content Deduplication: Check if identical body from student was received within the last 10 minutes
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        const duplicateContentMsg = await prisma.message.findFirst({
+          where: {
+            senderEmail: studentEmail,
+            body: bodyText,
+            createdAt: { gte: tenMinutesAgo },
+          },
+        });
+        if (duplicateContentMsg) {
+          console.log(`[IMAP LISTENER] Skipped because duplicate content: Identical email from ${studentEmail} processed within last 10 minutes.`);
+          if (msg.uid) {
+            await client.messageFlagsAdd({ uid: msg.uid }, ['\\Seen']);
+          }
+          continue;
         }
 
         lastEmailProcessed = new Date().toISOString();

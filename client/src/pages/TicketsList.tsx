@@ -4,6 +4,7 @@ import { api } from '../utils/api';
 import type { Ticket } from '../utils/api';
 import { TicketFilters } from '../components/TicketFilters';
 import { Search, ArrowUpDown, RefreshCw, Calendar, Eye, Sparkles, Ticket as TicketIcon } from 'lucide-react';
+import { TICKET_CHANGED_EVENT } from '../utils/events';
 import {
   useReactTable,
   getCoreRowModel,
@@ -42,8 +43,8 @@ export const TicketsList: React.FC = () => {
 
   const navigate = useNavigate();
 
-  const fetchTickets = async () => {
-    setLoading(true);
+  const fetchTickets = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const sortingItem = sorting[0];
       const apiSortBy = sortingItem ? sortingItem.id : 'createdAt';
@@ -69,17 +70,23 @@ export const TicketsList: React.FC = () => {
       setTotal(data.total ?? data.tickets?.length ?? 0);
       setTotalPages(data.totalPages ?? 1);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch tickets list.');
+      if (!isBackground) setError(err.message || 'Failed to fetch tickets list.');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTickets();
-    // Real-time synchronization: Poll every 5 seconds (Requirement 10)
-    const interval = setInterval(fetchTickets, 5000);
-    return () => clearInterval(interval);
+    fetchTickets(false);
+    // Real-time synchronization: Poll every 15 seconds in background & listen for immediate sync
+    const interval = setInterval(() => fetchTickets(true), 15000);
+    const handleSync = () => fetchTickets(true);
+    window.addEventListener(TICKET_CHANGED_EVENT, handleSync);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener(TICKET_CHANGED_EVENT, handleSync);
+    };
   }, [status, category, sorting, studentEmail, confidenceFilter, dateRange, page, limit]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {

@@ -56,6 +56,21 @@ app.use(cookieParser());
 // Custom Database Session Authentication Middleware
 app.use(authMiddleware);
 
+// Server Status / Health Check
+app.get(['/health', '/api/health'], (req, res) => {
+  const imapHealth = getIMAPHealthStatus();
+  res.json({
+    status: 'ok',
+    message: 'Backend is running',
+    timestamp: new Date().toISOString(),
+    imapConnected: imapHealth.imapConnected,
+    lastEmailProcessed: imapHealth.lastEmailProcessed,
+    lastTicketCreated: imapHealth.lastTicketCreated,
+    currentDatabase: imapHealth.currentDatabase,
+    currentEnvironment: imapHealth.currentEnvironment,
+  });
+});
+
 // Endpoint Registration
 app.use('/api/auth', authRoutes);
 app.use('/api/agents', agentRoutes);
@@ -85,21 +100,6 @@ if (process.env.NODE_ENV === 'production') {
 // Global Error Handler Middleware
 import { errorHandler } from './middleware/error';
 app.use(errorHandler);
-
-// Server Status / Health Check (Task 8)
-app.get(['/health', '/api/health'], (req, res) => {
-  const imapHealth = getIMAPHealthStatus();
-  res.json({
-    status: 'ok',
-    message: 'Backend is running',
-    timestamp: new Date().toISOString(),
-    imapConnected: imapHealth.imapConnected,
-    lastEmailProcessed: imapHealth.lastEmailProcessed,
-    lastTicketCreated: imapHealth.lastTicketCreated,
-    currentDatabase: imapHealth.currentDatabase,
-    currentEnvironment: imapHealth.currentEnvironment,
-  });
-});
 
 // Start Server
 const PORT = config.PORT;

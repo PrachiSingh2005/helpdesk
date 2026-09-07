@@ -6,6 +6,7 @@ import { TicketDetails } from '../components/TicketDetails';
 import { ReplyThread } from '../components/ReplyThread';
 import { UpdateTicket } from '../components/UpdateTicket';
 import { TicketDetailSkeleton } from '../components/TicketDetailSkeleton';
+import { notifyTicketsChanged } from '../utils/events';
 import {
   Loader2,
   ArrowLeft,
@@ -46,15 +47,21 @@ export const TicketDetail: React.FC = () => {
     }
   };
 
-  const fetchTicketDetails = async () => {
+  const fetchTicketDetails = async (isBackground = false) => {
     if (!id) return;
+    if (!isBackground) setLoading(true);
     try {
       const data = await api.tickets.get(id);
-      setTicket(data.ticket);
+      setTicket((prev) => {
+        if (JSON.stringify(prev) === JSON.stringify(data.ticket)) {
+          return prev;
+        }
+        return data.ticket;
+      });
     } catch (err: any) {
-      setError(err.message || 'Failed to load ticket details.');
+      if (!isBackground) setError(err.message || 'Failed to load ticket details.');
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
@@ -68,11 +75,11 @@ export const TicketDetail: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchTicketDetails();
+    fetchTicketDetails(false);
     fetchAgents();
 
-    // Auto-refresh ticket details every 5 seconds for real-time AI summary and message updates
-    const interval = setInterval(fetchTicketDetails, 5000);
+    // Auto-refresh ticket details every 15 seconds for real-time AI summary and message updates
+    const interval = setInterval(() => fetchTicketDetails(true), 15000);
     return () => clearInterval(interval);
   }, [id]);
 
@@ -92,6 +99,7 @@ export const TicketDetail: React.FC = () => {
     try {
       const data = await api.tickets.update(ticket.id, { status: newStatus });
       setTicket((prev) => (prev ? { ...prev, status: data.ticket.status } : null));
+      notifyTicketsChanged();
     } catch (err: any) {
       alert(err.message || 'Failed to update ticket status.');
     }
@@ -102,6 +110,7 @@ export const TicketDetail: React.FC = () => {
     try {
       const data = await api.tickets.update(ticket.id, { category: newCategory });
       setTicket((prev) => (prev ? { ...prev, category: data.ticket.category } : null));
+      notifyTicketsChanged();
     } catch (err: any) {
       alert(err.message || 'Failed to update ticket category.');
     }
@@ -112,6 +121,7 @@ export const TicketDetail: React.FC = () => {
     try {
       const data = await api.tickets.update(ticket.id, { priority: newPriority });
       setTicket((prev) => (prev ? { ...prev, priority: data.ticket.priority } : null));
+      notifyTicketsChanged();
     } catch (err: any) {
       alert(err.message || 'Failed to update ticket priority.');
     }
@@ -122,6 +132,7 @@ export const TicketDetail: React.FC = () => {
     try {
       const data = await api.tickets.update(ticket.id, { sentiment: newSentiment });
       setTicket((prev) => (prev ? { ...prev, sentiment: data.ticket.sentiment } : null));
+      notifyTicketsChanged();
     } catch (err: any) {
       alert(err.message || 'Failed to update ticket sentiment.');
     }
@@ -133,6 +144,7 @@ export const TicketDetail: React.FC = () => {
     try {
       const data = await api.tickets.update(ticket.id, { assignedToId });
       setTicket((prev) => (prev ? { ...prev, assignedTo: data.ticket.assignedTo } : null));
+      notifyTicketsChanged();
     } catch (err: any) {
       alert(err.message || 'Failed to assign ticket.');
     }
@@ -147,6 +159,7 @@ export const TicketDetail: React.FC = () => {
       await api.tickets.reply(ticket.id, replyBody, replyBodyHtml);
       setReplyBody('');
       await fetchTicketDetails(); // re-fetch full thread + updated status
+      notifyTicketsChanged();
     } catch (err: any) {
       alert(err.message || 'Failed to send reply.');
     } finally {

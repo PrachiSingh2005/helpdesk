@@ -49,6 +49,26 @@ export async function processClassificationJob(payload: ClassificationJobPayload
 
     const settings = await getSettings();
 
+    // Deduplication Guard 1: Inspect conversation thread
+    const messages = ticket.messages || [];
+    const latestMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+
+    // Only process AI auto-reply if the latest message is from a STUDENT
+    if (latestMessage && latestMessage.sender !== MessageSender.STUDENT) {
+      console.log(`[Pipeline Skip] Latest message in Ticket #${ticket.ticketNumber} is from ${latestMessage.sender}. Skipping duplicate AI auto-reply.`);
+      return;
+    }
+
+    // Deduplication Guard 2: Skip if an AI response was already created recently for this ticket
+    const recentAiReply = messages.find(
+      (m) => m.sender === MessageSender.SYSTEM_AI && 
+      Date.now() - new Date(m.createdAt).getTime() < 120000
+    );
+    if (recentAiReply) {
+      console.log(`[Pipeline Skip] AI response was already sent recently for Ticket #${ticket.ticketNumber}. Skipping duplicate auto-reply.`);
+      return;
+    }
+
     // 2. Gather conversation history context
     const threadText = ticket.messages
       .map((m) => `${m.sender}: "${m.body}"`)
@@ -177,17 +197,19 @@ export async function stopQueue(): Promise<void> {
 export async function enqueueClassification(payload: ClassificationJobPayload): Promise<string | null> {
   console.log(`[Queue] Enqueueing classification for ticket ${payload.ticketId}`);
 
-  // Run classification inline asynchronously immediately to guarantee zero-delay AI response
-  processClassificationJob(payload).catch((err) => {
-    console.error(`[Queue] Direct classification execution error for ticket ${payload.ticketId}:`, err);
-  });
-
   if (boss) {
     try {
       return await boss.send('classify-ticket', payload);
-    } catch {
+    } catch (err: any) {
+      console.warn(`[Queue] pg-boss send failed, falling back to direct execution:`, err.message || err);
+      processClassificationJob(payload).catch((e) => console.error(`[Queue] Direct classification execution error:`, e));
       return null;
     }
   }
+
+  // Fallback to inline processing if pg-boss queue daemon is not active
+  processClassificationJob(payload).catch((err) => {
+    console.error(`[Queue] Direct classification execution error for ticket ${payload.ticketId}:`, err);
+  });
   return null;
 }

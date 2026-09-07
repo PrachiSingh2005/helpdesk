@@ -97,6 +97,7 @@ console.log(`Backend URL configured in frontend (VITE_API_URL): "${configuredApi
 // Create an axios instance configured with withCredentials to support database session cookies
 const axiosInstance = axios.create({
   baseURL: configuredApiUrl,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -129,7 +130,9 @@ async function request<T>(path: string, options: any = {}): Promise<T> {
   } catch (error: any) {
     let errMsg = 'API request failed';
     
-    if (error.response?.data) {
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      errMsg = 'Connection timed out. The backend server is taking too long to respond (it may be waking up from a cold start). Please try again in a few seconds.';
+    } else if (error.response?.data) {
       const data = error.response.data;
       if (typeof data === 'string') {
         errMsg = data;
@@ -148,6 +151,10 @@ async function request<T>(path: string, options: any = {}): Promise<T> {
           errMsg = JSON.stringify(data);
         }
       }
+    } else if (error.response?.status === 404) {
+      errMsg = `Backend endpoint not found (404). Please verify backend service deployment.`;
+    } else if (error.message === 'Network Error' || !error.response) {
+      errMsg = `Network error: Unable to reach backend server (${configuredApiUrl || 'relative path'}). The backend service may be offline or starting up.`;
     } else if (error.message) {
       errMsg = error.message;
     }

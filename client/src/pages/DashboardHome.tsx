@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api, Role } from '../utils/api';
 import type { DashboardStats } from '../utils/api';
-import { Ticket, CircleAlert, Sparkles, UserCheck, Loader2, UserCog, Users as UsersIcon, Percent, Clock, TrendingUp, Calendar } from 'lucide-react';
+import { Ticket, CircleAlert, Sparkles, UserCheck, Loader2, UserCog, Users as UsersIcon, Clock, TrendingUp, Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
+import { TICKET_CHANGED_EVENT } from '../utils/events';
 
 const formatResolutionTime = (minutes: number) => {
   if (minutes < 1) {
@@ -65,21 +66,33 @@ export const DashboardHome: React.FC = () => {
   const [chartKey, setChartKey] = useState(0); // Trigger bar re-animation on filter change
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchStats = async (isBackground = false) => {
+      if (!isBackground) setLoading(true);
       try {
         const data = await api.dashboard.stats();
-        setStats(data);
+        setStats((prev) => {
+          if (JSON.stringify(prev) === JSON.stringify(data)) {
+            return prev;
+          }
+          return data;
+        });
       } catch (err: any) {
-        setError(err.message || 'Failed to fetch dashboard stats.');
+        if (!isBackground) setError(err.message || 'Failed to fetch dashboard stats.');
       } finally {
-        setLoading(false);
+        if (!isBackground) setLoading(false);
       }
     };
 
-    fetchStats();
-    // Real-time synchronization: Poll every 5 seconds (Requirement 10)
-    const interval = setInterval(fetchStats, 5000);
-    return () => clearInterval(interval);
+    fetchStats(false);
+    // Real-time synchronization: Poll every 30 seconds & listen to immediate ticket-changed events
+    const interval = setInterval(() => fetchStats(true), 30000);
+    const handleSync = () => fetchStats(true);
+    window.addEventListener(TICKET_CHANGED_EVENT, handleSync);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener(TICKET_CHANGED_EVENT, handleSync);
+    };
   }, []);
 
   const handleRangeChange = (range: '30' | '14' | '7') => {
@@ -122,52 +135,21 @@ export const DashboardHome: React.FC = () => {
       border: 'border-amber-500/15',
     },
     {
-      label: 'In Progress',
-      value: <AnimatedNumber value={stats.statusStats.IN_PROGRESS || 0} />,
-      icon: UserCog,
-      color: 'text-indigo-600 dark:text-indigo-400',
-      bg: 'bg-indigo-500/10',
-      border: 'border-indigo-500/15',
-    },
-    {
       label: 'Resolved Tickets',
-      value: <AnimatedNumber value={(stats.statusStats.RESOLVED || 0) + (stats.statusStats.CLOSED || 0)} />,
+      value: <AnimatedNumber value={stats.statusStats.RESOLVED || 0} />,
       icon: UserCheck,
       color: 'text-emerald-600 dark:text-emerald-400',
       bg: 'bg-emerald-500/10',
       border: 'border-emerald-500/15',
-    },
-    {
-      label: 'AI Resolved',
-      value: <AnimatedNumber value={stats.aiMetrics.autoResolved} />,
-      icon: Sparkles,
-      color: 'text-teal-600 dark:text-teal-400',
-      bg: 'bg-teal-500/10',
-      border: 'border-teal-500/15',
-    },
-    {
-      label: 'AI Resolution Rate',
-      value: `${stats.aiMetrics.aiResolutionRate ?? (stats.totalTickets > 0 ? Math.round((stats.aiMetrics.autoResolved / stats.totalTickets) * 100) : 0)}%`,
-      icon: Percent,
-      color: 'text-cyan-600 dark:text-cyan-400',
-      bg: 'bg-cyan-500/10',
-      border: 'border-cyan-500/15',
+      subtext: stats.statusStats.CLOSED ? `+ ${stats.statusStats.CLOSED} closed` : undefined,
     },
     {
       label: 'Avg Resolution Time',
       value: formatResolutionTime(stats.aiMetrics.avgResolutionTimeMin),
       icon: Clock,
-      color: 'text-emerald-600 dark:text-emerald-400',
-      bg: 'bg-emerald-500/10',
-      border: 'border-emerald-500/15',
-    },
-    {
-      label: 'Avg First Response',
-      value: formatResolutionTime(stats.aiMetrics.avgFirstResponseTimeMin || 1),
-      icon: TrendingUp,
-      color: 'text-purple-600 dark:text-purple-400',
-      bg: 'bg-purple-500/10',
-      border: 'border-purple-500/15',
+      color: 'text-teal-600 dark:text-teal-400',
+      bg: 'bg-teal-500/10',
+      border: 'border-teal-500/15',
     },
   ];
 
@@ -184,7 +166,7 @@ export const DashboardHome: React.FC = () => {
   return (
     <div className="space-y-6 sm:space-y-8 animate-fadeIn max-w-full">
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {statCards.map((card, idx) => {
           const Icon = card.icon;
           return (
@@ -197,6 +179,9 @@ export const DashboardHome: React.FC = () => {
                   {card.label}
                 </span>
                 <span className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-foreground tracking-tight">{card.value}</span>
+                {card.subtext && (
+                  <span className="text-[10px] text-muted-foreground font-semibold block mt-0.5">{card.subtext}</span>
+                )}
               </div>
               <div className={`p-2.5 rounded-xl border ${card.border} ${card.bg} transition-all duration-300 group-hover:scale-110 shadow-sm relative z-10 shrink-0`}>
                 <Icon className={`w-5 h-5 ${card.color}`} />
@@ -218,7 +203,7 @@ export const DashboardHome: React.FC = () => {
               <h3 className="text-lg font-bold text-foreground tracking-tight">Tickets Per Day</h3>
               <span className="flex items-center gap-1 text-[11px] font-semibold text-teal-600 dark:text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded-md border border-teal-500/20">
                 <TrendingUp className="w-3 h-3" />
-                {totalPeriodTickets} total
+                {totalPeriodTickets} in last {rangeFilter}d
               </span>
             </div>
             <p className="text-muted-foreground text-xs sm:text-sm">

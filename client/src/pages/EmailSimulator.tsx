@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../utils/api';
 import { Mail, Send, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { notifyTicketsChanged } from '../utils/events';
 
 export const EmailSimulator: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ export const EmailSimulator: React.FC = () => {
       setSuccessTicketId(res.ticketId);
       setSubject('');
       setBody('');
+      notifyTicketsChanged();
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to simulate inbound email.');
     } finally {
